@@ -1,7 +1,0 @@
-{
-  "name": "web-code-app-mobile",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "angular"
-}
