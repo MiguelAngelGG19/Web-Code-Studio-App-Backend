@@ -62,13 +62,13 @@ async function bootstrap() {
     const port = Number(process.env.PORT) || 3000;
     app.listen(port, () => {
       console.log("--------------------------------------------------");
-      console.log(`🚀 API DE ACTIVA CORRIENDO`);
-      console.log(`🔗 URL: http://localhost:${port}`);
+      console.log(`API DE ACTIVA CORRIENDO`);
+      console.log(`URL: http://localhost:${port}`);
       console.log("--------------------------------------------------");
     });
 
   } catch (error) {
-    console.error("❌ Error fatal al iniciar el servidor:", error);
+    console.error("Error fatal al iniciar el servidor:", error);
     process.exit(1);
   }
 }

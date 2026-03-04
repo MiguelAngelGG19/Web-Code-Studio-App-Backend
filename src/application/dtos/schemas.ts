@@ -19,8 +19,11 @@ export const PatientSchema = z.object({
   sex: z.string().length(1, "El sexo debe ser M o F"),
   height: z.number().positive("La estatura debe ser un número positivo"),
   weight: z.number().positive("El peso debe ser un número positivo"),
+  email: z.string().email("Debe proporcionar un correo electrónico válido"),
   physiotherapistId: z.number().int().positive("El ID del fisioterapeuta es inválido")
 });
+
+
 
 // 3. Reglas para el Ejercicio
 export const ExerciseSchema = z.object({
@@ -29,3 +32,6 @@ export const ExerciseSchema = z.object({
   description: z.string().min(10, "La descripción debe ser más detallada"),
   videoUrl: z.string().url("Debe ser un enlace (URL) válido")
 });
+
+// NUEVO: Esquema para edición (todos los campos opcionales)
+export const UpdatePatientSchema = PatientSchema.partial();
