@@ -33,5 +33,16 @@ export const ExerciseSchema = z.object({
   videoUrl: z.string().url("Debe ser un enlace (URL) válido")
 });
 
+// 4. Reglas para el Seguimiento (Guardar Molestias)
+export const TrackingSchema = z.object({
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  painLevel: z.number().int().min(1, "El dolor mínimo es 1").max(10, "El dolor máximo es 10"),
+  postObservations: z.string().optional(),
+  intraObservations: z.string().optional(),
+  alert: z.number().int().min(0).max(1).optional(),
+  routineId: z.number().int().positive("El ID de la rutina es obligatorio")
+});
+
 // NUEVO: Esquema para edición (todos los campos opcionales)
 export const UpdatePatientSchema = PatientSchema.partial();

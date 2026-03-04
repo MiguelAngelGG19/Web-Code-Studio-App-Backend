@@ -4,7 +4,8 @@ import { Router } from "express";
 export function buildRoutes(controllers: {
   patientController: any;
   physioController: any;
-  exerciseController: any;
+  exerciseController: any,
+  trackingController: any;
 }) {
   const router = Router();
 
@@ -22,5 +23,7 @@ export function buildRoutes(controllers: {
   router.post("/exercises", controllers.exerciseController.create);
   router.get("/exercises", controllers.exerciseController.list);
 
+    // Rutas de Seguimiento (Molestias)
+  router.post("/tracking", controllers.trackingController.create);
   return router;
 }
