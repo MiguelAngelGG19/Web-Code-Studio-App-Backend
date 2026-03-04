@@ -2,7 +2,7 @@ import { PatientRepository } from "../ports/out/PatientRepository";
 import { UpdatePatientDTO } from "../dtos/patient.dto";
 import { Patient } from "../../domain/entities/Patient";
 
-export class UpdatePatient {
+export class UpdatePatientUseCase {
   constructor(private readonly patientRepository: PatientRepository) {}
 
   async execute(id: number, data: UpdatePatientDTO): Promise<Patient | null> {
