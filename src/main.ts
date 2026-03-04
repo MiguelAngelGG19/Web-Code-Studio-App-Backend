@@ -4,6 +4,8 @@ import cors from "cors";
 import * as dotenv from "dotenv";
 import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
+import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
+import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
 
 
 // Repositorios
@@ -18,6 +20,7 @@ import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc";
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
 import { CreateExerciseUseCase } from "./application/use-cases/CreateExercise.uc";
 import { ListExercisesUseCase } from "./application/use-cases/ListExercises.uc";
+
 
 // Controladores
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
@@ -46,9 +49,12 @@ async function bootstrap() {
     const createExercise = new CreateExerciseUseCase(exerciseRepo);
     const listExercises = new ListExercisesUseCase(exerciseRepo);
 
+    const getPatientById = new GetPatientByIdUseCase(patientRepo);
+const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
+
     // 4. Instanciar Controladores
-    const patientController = new PatientController(createPatient, listPatients, updatePatient);// <- 3. INYECTAR AQUÍ
-    const physioController = new PhysiotherapistController(createPhysio);
+    const patientController = new PatientController(createPatient, listPatients, updatePatient, getPatientById);
+const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises);
 
     // 5. Configurar Servidor Express

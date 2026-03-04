@@ -5,4 +5,5 @@ export interface PatientRepository {
   create(data: CreatePatientDTO): Promise<Patient>;
   findAll(limit: number, offset: number): Promise<{ rows: Patient[]; count: number }>;
   update(id: number, data: UpdatePatientDTO): Promise<Patient | null>;
+  findById(id: number): Promise<Patient | null>;
 }

@@ -8,4 +8,9 @@ export class SequelizePhysiotherapistRepository implements PhysiotherapistReposi
     const created = await PhysiotherapistModel.create(data as any);
     return created.toJSON() as Physiotherapist;
   }
+  // NUEVO: Método para Buscar por ID
+  async findById(id: number): Promise<Physiotherapist | null> {
+    const physio = await PhysiotherapistModel.findByPk(id);
+    return physio ? (physio.toJSON() as Physiotherapist) : null;
+  }
 }
