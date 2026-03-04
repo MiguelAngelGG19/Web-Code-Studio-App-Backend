@@ -61,3 +61,18 @@ export const ExerciseModel = sequelize.define(
   { tableName: "ejercicio", timestamps: false }
 );
 
+// 5. Definición del Modelo Seguimiento (Molestias/Dolor)
+export const TrackingModel = sequelize.define(
+  "Tracking",
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "id" },
+    startTime: { type: DataTypes.TIME, field: "start_time" },
+    endTime: { type: DataTypes.TIME, field: "end_time" },
+    painLevel: { type: DataTypes.INTEGER, field: "pain_level" }, // Nivel de dolor 1-10
+    postObservations: { type: DataTypes.TEXT, field: "post_observations" },
+    intraObservations: { type: DataTypes.TEXT, field: "intra_observations" },
+    alert: { type: DataTypes.TINYINT, field: "alert" },
+    routineId: { type: DataTypes.INTEGER, field: "routine_id" },
+  },
+  { tableName: "seguimiento_rutina", timestamps: false }
+);

@@ -6,6 +6,9 @@ import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
 import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
 import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
+import { SequelizeTrackingRepository } from "./infrastructure/persistence/repositories/SequelizeTrackingRepository";
+import { RegisterPainLevelUseCase } from "./application/use-cases/RegisterPainLevel.uc";
+import { TrackingController } from "./infrastructure/http/controllers/tracking.controller";
 
 
 // Repositorios
@@ -39,11 +42,13 @@ async function bootstrap() {
     const patientRepo = new SequelizePatientRepository();
     const physioRepo = new SequelizePhysiotherapistRepository();
     const exerciseRepo = new SequelizeExerciseRepository();
+    const trackingRepo = new SequelizeTrackingRepository();
 
     // 3. Instanciar Casos de Uso
     const createPatient = new CreatePatientUseCase(patientRepo);
     const listPatients = new ListPatientsUseCase(patientRepo);
     const updatePatient = new UpdatePatientUseCase(patientRepo); // <- 2. INSTANCIAR
+    const registerPain = new RegisterPainLevelUseCase(trackingRepo);
 
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
     const createExercise = new CreateExerciseUseCase(exerciseRepo);
@@ -56,6 +61,7 @@ const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
     const patientController = new PatientController(createPatient, listPatients, updatePatient, getPatientById);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises);
+    const trackingController = new TrackingController(registerPain);
 
     // 5. Configurar Servidor Express
     const app = express();
@@ -66,7 +72,8 @@ const physioController = new PhysiotherapistController(createPhysio, getPhysioBy
     app.use(express.json());
 
     // 6. Conectar Rutas
-    app.use("/api", buildRoutes({ patientController, physioController, exerciseController }));
+    app.use("/api", buildRoutes({ patientController, physioController, exerciseController, trackingController }));
+
 
     // 7. Encender Servidor
     const port = Number(process.env.PORT) || 3000;
