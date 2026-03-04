@@ -5,6 +5,7 @@ import * as dotenv from "dotenv";
 import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
 
+
 // Repositorios
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
 import { SequelizePhysiotherapistRepository } from "./infrastructure/persistence/repositories/SequelizePhysiotherapistRepository";
@@ -46,7 +47,7 @@ async function bootstrap() {
     const listExercises = new ListExercisesUseCase(exerciseRepo);
 
     // 4. Instanciar Controladores
-    const patientController = new PatientController(createPatient, listPatients, updatePatient); // <- 3. INYECTAR AQUÍ
+    const patientController = new PatientController(createPatient, listPatients, updatePatient);// <- 3. INYECTAR AQUÍ
     const physioController = new PhysiotherapistController(createPhysio);
     const exerciseController = new ExerciseController(createExercise, listExercises);
 
