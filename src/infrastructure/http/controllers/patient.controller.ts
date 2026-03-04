@@ -15,7 +15,7 @@ export class PatientController {
       const patient = await this.createPatient.execute(validatedData);
       res.status(201).json({ success: true, data: patient });
     } catch (error: any) {
-      if (error.errors) {
+      if (error.name === 'ZodError') {
         res.status(400).json({ success: false, message: "Error de validación de formato", errors: error.errors });
         return;
       }
