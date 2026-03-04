@@ -14,6 +14,7 @@ export function buildRoutes(controllers: {
   // Rutas de Pacientes
   router.post("/patients", controllers.patientController.create);
   router.get("/patients", controllers.patientController.list);
+    router.put("/patients/:id", controllers.patientController.update);
 
   // Rutas de Ejercicios
   router.post("/exercises", controllers.exerciseController.create);

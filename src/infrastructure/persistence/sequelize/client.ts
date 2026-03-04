@@ -31,7 +31,6 @@ export const PhysiotherapistModel = sequelize.define(
   { tableName: "fisioterapeuta", timestamps: false }
 );
 
-// 3. Definición del Modelo Paciente
 export const PatientModel = sequelize.define(
   "Patient",
   {
@@ -43,6 +42,7 @@ export const PatientModel = sequelize.define(
     sex: { type: DataTypes.STRING, field: "sex" },
     height: { type: DataTypes.FLOAT, field: "height" },
     weight: { type: DataTypes.FLOAT, field: "weight" },
+    email: { type: DataTypes.STRING, field: "email", unique: true }, // <-- ESTA LÍNEA ES CRÍTICA
     physiotherapistId: { type: DataTypes.INTEGER, field: "physiotherapist_id" },
   },
   { tableName: "paciente", timestamps: false }

@@ -1,8 +1,13 @@
 import { Request, Response } from "express";
-import { PatientSchema } from "../../../application/dtos/schemas";
+// 1. SOLUCIÓN: Importamos UpdatePatientSchema
+import { PatientSchema, UpdatePatientSchema } from "../../../application/dtos/schemas";
 
 export class PatientController {
-  constructor(private readonly createPatient: any, private readonly listPatients: any) {}
+  constructor(
+    private readonly createPatient: any,
+    private readonly listPatients: any,
+    private readonly updatePatient: any
+  ) {}
 
   create = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -10,18 +15,15 @@ export class PatientController {
       const patient = await this.createPatient.execute(validatedData);
       res.status(201).json({ success: true, data: patient });
     } catch (error: any) {
-      // 1. Error de Formato (Zod)
       if (error.errors) {
         res.status(400).json({ success: false, message: "Error de validación de formato", errors: error.errors });
         return;
       }
-      // 2. Error de Datos Duplicados (Sequelize)
       if (error.name === 'SequelizeUniqueConstraintError') {
         const campoDuplicado = error.errors[0]?.path || "desconocido";
         res.status(409).json({ success: false, message: `El registro ya existe. El campo '${campoDuplicado}' está duplicado.` });
         return;
       }
-      // 3. Otros Errores (Ej. Llave foránea incorrecta)
       res.status(400).json({ success: false, message: error.message });
     }
   };
@@ -38,4 +40,36 @@ export class PatientController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
-}
+
+  // 2. SOLUCIÓN: Definimos explícitamente <{ id: string }> en el Request
+  update = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const patientId = parseInt(req.params.id);
+      if (isNaN(patientId)) {
+        res.status(400).json({ success: false, message: "El ID del paciente debe ser un número válido." });
+        return;
+      }
+
+      const validatedData = UpdatePatientSchema.parse(req.body);
+
+      const updatedPatient = await this.updatePatient.execute(patientId, validatedData);
+
+      if (!updatedPatient) {
+        res.status(404).json({ success: false, message: "Paciente no encontrado." });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: updatedPatient });
+    } catch (error: any) {
+      if (error.errors) {
+        res.status(400).json({ success: false, message: "Error de validación", errors: error.errors });
+        return;
+      }
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        res.status(409).json({ success: false, message: "El correo electrónico ingresado ya está en uso por otro paciente." });
+        return;
+      }
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+} // <-- ESTA ES LA ÚNICA LLAVE QUE CIERRA LA CLASE AL FINAL
