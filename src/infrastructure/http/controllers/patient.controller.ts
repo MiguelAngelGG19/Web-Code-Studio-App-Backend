@@ -6,7 +6,8 @@ export class PatientController {
   constructor(
     private readonly createPatient: any,
     private readonly listPatients: any,
-    private readonly updatePatient: any
+    private readonly updatePatient: any,
+    private readonly getPatientById: any
   ) {}
 
   create = async (req: Request, res: Response): Promise<void> => {
@@ -72,4 +73,25 @@ export class PatientController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
+  // 2. Añadir este nuevo método al final de la clase
+  getById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const patientId = parseInt(req.params.id);
+      if (isNaN(patientId)) {
+        res.status(400).json({ success: false, message: "El ID proporcionado no es válido." });
+        return;
+      }
+
+      const patient = await this.getPatientById.execute(patientId);
+
+      if (!patient) {
+        res.status(404).json({ success: false, message: "Paciente no encontrado." });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: patient });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+    };
 } // <-- ESTA ES LA ÚNICA LLAVE QUE CIERRA LA CLASE AL FINAL

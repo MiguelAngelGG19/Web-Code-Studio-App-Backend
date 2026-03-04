@@ -31,4 +31,10 @@ export class SequelizePatientRepository implements PatientRepository {
     const updatedPatient = await PatientModel.findByPk(id);
     return updatedPatient?.toJSON() as Patient;
   }
+  // 4. NUEVO: Método para Buscar por ID
+  async findById(id: number): Promise<Patient | null> {
+    const patient = await PatientModel.findByPk(id);
+    return patient ? (patient.toJSON() as Patient) : null;
+  }
+
 }
