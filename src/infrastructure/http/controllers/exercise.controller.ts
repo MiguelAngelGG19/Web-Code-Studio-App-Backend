@@ -10,8 +10,8 @@ export class ExerciseController {
       const exercise = await this.createExercise.execute(validatedData);
       res.status(201).json({ success: true, data: exercise });
     } catch (error: any) {
-      // 1. Error de Formato (Zod)
-      if (error.errors) {
+      // SOLUCIÓN: Cambiamos error.errors por error.name === 'ZodError'
+      if (error.name === 'ZodError') {
         res.status(400).json({ success: false, message: "Error de validación de formato", errors: error.errors });
         return;
       }
@@ -22,6 +22,7 @@ export class ExerciseController {
       }
       res.status(400).json({ success: false, message: error.message });
     }
+  
   };
 
   list = async (req: Request, res: Response): Promise<void> => {
