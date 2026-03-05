@@ -5,7 +5,8 @@ export function buildRoutes(controllers: {
   patientController: any;
   physioController: any;
   exerciseController: any,
-  trackingController: any;
+  trackingController: any, 
+  routineController: any;
 }) {
   const router = Router();
 
@@ -26,4 +27,7 @@ export function buildRoutes(controllers: {
     // Rutas de Seguimiento (Molestias)
   router.post("/tracking", controllers.trackingController.create);
   return router;
+
+  // Rutas de Rutinas
+  router.post("/routines", controllers.routineController.create);
 }

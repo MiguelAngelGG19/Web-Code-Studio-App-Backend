@@ -9,8 +9,9 @@ import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysio
 import { SequelizeTrackingRepository } from "./infrastructure/persistence/repositories/SequelizeTrackingRepository";
 import { RegisterPainLevelUseCase } from "./application/use-cases/RegisterPainLevel.uc";
 import { TrackingController } from "./infrastructure/http/controllers/tracking.controller";
-
-
+import { SequelizeRoutineRepository } from "./infrastructure/persistence/repositories/SequelizeRoutineRepository";
+import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
+import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
 // Repositorios
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
 import { SequelizePhysiotherapistRepository } from "./infrastructure/persistence/repositories/SequelizePhysiotherapistRepository";
@@ -43,7 +44,7 @@ async function bootstrap() {
     const physioRepo = new SequelizePhysiotherapistRepository();
     const exerciseRepo = new SequelizeExerciseRepository();
     const trackingRepo = new SequelizeTrackingRepository();
-
+    const routineRepo = new SequelizeRoutineRepository();
     // 3. Instanciar Casos de Uso
     const createPatient = new CreatePatientUseCase(patientRepo);
     const listPatients = new ListPatientsUseCase(patientRepo);
@@ -57,11 +58,15 @@ async function bootstrap() {
     const getPatientById = new GetPatientByIdUseCase(patientRepo);
 const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
 
+const createRoutine = new CreateRoutineUseCase(routineRepo);
+
+
     // 4. Instanciar Controladores
     const patientController = new PatientController(createPatient, listPatients, updatePatient, getPatientById);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises);
     const trackingController = new TrackingController(registerPain);
+    const routineController = new RoutineController(createRoutine);
 
     // 5. Configurar Servidor Express
     const app = express();
@@ -72,7 +77,7 @@ const physioController = new PhysiotherapistController(createPhysio, getPhysioBy
     app.use(express.json());
 
     // 6. Conectar Rutas
-    app.use("/api", buildRoutes({ patientController, physioController, exerciseController, trackingController }));
+    app.use("/api", buildRoutes({ patientController, physioController, exerciseController, trackingController, routineController }));
 
 
     // 7. Encender Servidor
