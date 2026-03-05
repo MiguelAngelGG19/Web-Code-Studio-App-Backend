@@ -44,5 +44,15 @@ export const TrackingSchema = z.object({
   routineId: z.number().int().positive("El ID de la rutina es obligatorio")
 });
 
+// 5. Reglas para la Rutina
+export const RoutineSchema = z.object({
+  name: z.string().min(3, "El nombre de la rutina es obligatorio"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "El formato debe ser YYYY-MM-DD"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "El formato debe ser YYYY-MM-DD"),
+  physiotherapistId: z.number().int().positive(),
+  patientId: z.number().int().positive(),
+  exerciseIds: z.array(z.number().int().positive()).nonempty("Debe seleccionar al menos un ejercicio")
+});
+
 // NUEVO: Esquema para edición (todos los campos opcionales)
 export const UpdatePatientSchema = PatientSchema.partial();

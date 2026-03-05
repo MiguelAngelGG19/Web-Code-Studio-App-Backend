@@ -76,3 +76,26 @@ export const TrackingModel = sequelize.define(
   },
   { tableName: "seguimiento_rutina", timestamps: false }
 );
+// 5. Definición del Modelo Rutina
+export const RoutineModel = sequelize.define(
+  "Routine",
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "idRutina" },
+    name: { type: DataTypes.STRING, field: "name" },
+    startDate: { type: DataTypes.DATEONLY, field: "start_date" },
+    endDate: { type: DataTypes.DATEONLY, field: "end_date" },
+    physiotherapistId: { type: DataTypes.INTEGER, field: "physiotherapist_id" },
+    patientId: { type: DataTypes.INTEGER, field: "patient_id" },
+  },
+  { tableName: "rutina", timestamps: false }
+);
+
+// 6. Definición de la Tabla Intermedia (Ejercicio <-> Rutina)
+export const ExerciseRoutineModel = sequelize.define(
+  "ExerciseRoutine",
+  {
+    exerciseId: { type: DataTypes.INTEGER, primaryKey: true, field: "exercise_id" },
+    routineId: { type: DataTypes.INTEGER, primaryKey: true, field: "routine_id" },
+  },
+  { tableName: "ejercicio_has_rutina", timestamps: false }
+);
