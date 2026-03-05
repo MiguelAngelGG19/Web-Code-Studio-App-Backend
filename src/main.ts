@@ -12,6 +12,9 @@ import { TrackingController } from "./infrastructure/http/controllers/tracking.c
 import { SequelizeRoutineRepository } from "./infrastructure/persistence/repositories/SequelizeRoutineRepository";
 import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
 import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
+import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
+
+
 // Repositorios
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
 import { SequelizePhysiotherapistRepository } from "./infrastructure/persistence/repositories/SequelizePhysiotherapistRepository";
@@ -59,6 +62,7 @@ async function bootstrap() {
 const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
 
 const createRoutine = new CreateRoutineUseCase(routineRepo);
+const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
 
 
     // 4. Instanciar Controladores
@@ -66,7 +70,8 @@ const createRoutine = new CreateRoutineUseCase(routineRepo);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises);
     const trackingController = new TrackingController(registerPain);
-    const routineController = new RoutineController(createRoutine);
+    const routineController = new RoutineController(createRoutine, getPatientRoutine);
+
 
     // 5. Configurar Servidor Express
     const app = express();
