@@ -4,9 +4,9 @@ import { Router } from "express";
 export function buildRoutes(controllers: {
   patientController: any;
   physioController: any;
-  exerciseController: any,
-  trackingController: any, 
-  routineController: any;
+  exerciseController: any;
+  trackingController: any;
+  routineController: any; // <-- NUEVO: Agregamos el controlador de rutinas a la interfaz
 }) {
   const router = Router();
 
@@ -17,17 +17,18 @@ export function buildRoutes(controllers: {
   // Rutas de Pacientes
   router.post("/patients", controllers.patientController.create);
   router.get("/patients", controllers.patientController.list);
-    router.put("/patients/:id", controllers.patientController.update);
-    router.get("/patients/:id", controllers.patientController.getById);
+  router.put("/patients/:id", controllers.patientController.update);
+  router.get("/patients/:id", controllers.patientController.getById);
 
   // Rutas de Ejercicios
   router.post("/exercises", controllers.exerciseController.create);
   router.get("/exercises", controllers.exerciseController.list);
 
-    // Rutas de Seguimiento (Molestias)
+  // Rutas de Seguimiento (Molestias)
   router.post("/tracking", controllers.trackingController.create);
-  return router;
 
-  // Rutas de Rutinas
+  // <-- NUEVA RUTA DE RUTINAS -->
   router.post("/routines", controllers.routineController.create);
+
+  return router;
 }
