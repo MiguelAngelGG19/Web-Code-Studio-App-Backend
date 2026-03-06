@@ -31,6 +31,8 @@ export function buildRoutes(controllers: {
   // Rutas de Rutinas (Se eliminó el POST duplicado que había)
   router.post("/routines", controllers.routineController.create);
   router.get("/routines/patient/:patientId", controllers.routineController.getByPatient);
+  router.get("/routines/:id", controllers.routineController.getById); 
+  
 
   return router;
 }

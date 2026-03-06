@@ -5,4 +5,6 @@ export interface RoutineRepository {
   createWithExercises(data: CreateRoutineDTO): Promise<any>;
   // NUEVO: Buscar rutina activa de un paciente con sus ejercicios
   findActiveByPatientId(patientId: number): Promise<any | null>;
+  // NUEVO: Buscar rutina por su propio ID
+  findById(id: number): Promise<any | null>;
 }
