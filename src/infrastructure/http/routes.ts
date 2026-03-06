@@ -30,5 +30,11 @@ export function buildRoutes(controllers: {
   // <-- NUEVA RUTA DE RUTINAS -->
   router.post("/routines", controllers.routineController.create);
 
+   // Rutas de Rutinas
+  router.post("/routines", controllers.routineController.create);
+  // NUEVA RUTA
+  router.get("/routines/patient/:patientId", controllers.routineController.getByPatient);
+
+
   return router;
 }

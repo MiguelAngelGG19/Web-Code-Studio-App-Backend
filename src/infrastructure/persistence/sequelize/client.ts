@@ -99,3 +99,22 @@ export const ExerciseRoutineModel = sequelize.define(
   },
   { tableName: "ejercicio_has_rutina", timestamps: false }
 );
+
+// ==========================================
+// 7. DEFINICIÓN DE RELACIONES (ASOCIACIONES)
+// ==========================================
+
+// Relación: Rutina <-> Ejercicio (Muchos a Muchos)
+RoutineModel.belongsToMany(ExerciseModel, {
+  through: ExerciseRoutineModel,
+  foreignKey: "routine_id", // Cómo se llama la rutina en la tabla intermedia
+  otherKey: "exercise_id",  // Cómo se llama el ejercicio en la tabla intermedia
+  as: "exercises",          // El nombre del arreglo en el JSON final
+});
+
+ExerciseModel.belongsToMany(RoutineModel, {
+  through: ExerciseRoutineModel,
+  foreignKey: "exercise_id",
+  otherKey: "routine_id",
+  as: "routines",
+});
