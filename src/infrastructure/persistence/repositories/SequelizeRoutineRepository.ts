@@ -1,6 +1,6 @@
 import { RoutineRepository } from "../../../application/ports/out/RoutineRepository";
 import { CreateRoutineDTO } from "../../../application/dtos/routine.dto";
-import { RoutineModel, ExerciseRoutineModel, sequelize } from "../sequelize/client";
+import { RoutineModel, ExerciseRoutineModel, ExerciseModel, sequelize } from "../sequelize/client";
 
 export class SequelizeRoutineRepository implements RoutineRepository {
   
@@ -38,5 +38,23 @@ export class SequelizeRoutineRepository implements RoutineRepository {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  async findActiveByPatientId(patientId: number): Promise<any | null> {
+    const routine = await RoutineModel.findOne({
+      where: { patientId: patientId },
+      // Aquí ocurre la magia: le decimos que incluya los ejercicios asociados
+      include: [
+        {
+          model: ExerciseModel,
+          as: "exercises",
+          attributes: ['id', 'name', 'bodyZone', 'description', 'videoUrl'], // Qué datos del ejercicio queremos
+          through: { attributes: [] } // Evitamos que traiga datos basura de la tabla intermedia
+        }
+      ],
+      order: [['id', 'DESC']] // Traemos la rutina más reciente
+    });
+
+    return routine ? routine.toJSON() : null;
   }
 }
