@@ -27,7 +27,7 @@ import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc";
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
 import { CreateExerciseUseCase } from "./application/use-cases/CreateExercise.uc";
 import { ListExercisesUseCase } from "./application/use-cases/ListExercises.uc";
-
+import { GetExerciseByIdUseCase } from "./application/use-cases/GetExerciseById.uc";
 
 // Controladores
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
@@ -63,12 +63,13 @@ const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
 
 const createRoutine = new CreateRoutineUseCase(routineRepo);
 const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
+const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
 
 
     // 4. Instanciar Controladores
     const patientController = new PatientController(createPatient, listPatients, updatePatient, getPatientById);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
-    const exerciseController = new ExerciseController(createExercise, listExercises);
+    const exerciseController = new ExerciseController(createExercise, listExercises, getExerciseById);
     const trackingController = new TrackingController(registerPain);
     const routineController = new RoutineController(createRoutine, getPatientRoutine);
 
