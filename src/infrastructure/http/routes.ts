@@ -6,7 +6,7 @@ export function buildRoutes(controllers: {
   physioController: any;
   exerciseController: any;
   trackingController: any;
-  routineController: any; // <-- NUEVO: Agregamos el controlador de rutinas a la interfaz
+  routineController: any; 
 }) {
   const router = Router();
 
@@ -23,18 +23,14 @@ export function buildRoutes(controllers: {
   // Rutas de Ejercicios
   router.post("/exercises", controllers.exerciseController.create);
   router.get("/exercises", controllers.exerciseController.list);
+  router.get("/exercises/:id", controllers.exerciseController.getById);
 
   // Rutas de Seguimiento (Molestias)
   router.post("/tracking", controllers.trackingController.create);
 
-  // <-- NUEVA RUTA DE RUTINAS -->
+  // Rutas de Rutinas (Se eliminó el POST duplicado que había)
   router.post("/routines", controllers.routineController.create);
-
-   // Rutas de Rutinas
-  router.post("/routines", controllers.routineController.create);
-  // NUEVA RUTA
   router.get("/routines/patient/:patientId", controllers.routineController.getByPatient);
-
 
   return router;
 }

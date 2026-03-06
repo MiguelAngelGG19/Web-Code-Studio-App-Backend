@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import { RoutineSchema } from "../../../application/dtos/schemas";
 
 export class RoutineController {
-  constructor(private readonly createRoutine: any,
+  constructor(
+    private readonly createRoutine: any,
     private readonly getPatientRoutine: any
   ) {}
 
@@ -21,8 +22,8 @@ export class RoutineController {
     }
   };
 
-   // NUEVO: Endpoint para obtener la rutina
-  getByPatient = async (req: Request, res: Response): Promise<void> => {
+  // SOLUCIÓN AL ERROR: Añadimos <{ patientId: string }> al lado de Request
+  getByPatient = async (req: Request<{ patientId: string }>, res: Response): Promise<void> => {
     try {
       const patientId = parseInt(req.params.patientId, 10);
       if (isNaN(patientId)) {

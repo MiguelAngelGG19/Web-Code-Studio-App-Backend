@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { ExerciseSchema } from "../../../application/dtos/schemas";
 
 export class ExerciseController {
-  constructor(private readonly createExercise: any, private readonly listExercises: any) {}
+  constructor(private readonly createExercise: any, private readonly listExercises: any,private readonly getExerciseById: any) {}
 
   create = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -33,6 +33,28 @@ export class ExerciseController {
 
       const result = await this.listExercises.execute({ limit, offset });
       res.status(200).json({ success: true, page, limit, ...result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+  // NUEVO: Método para obtener por ID
+  getById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const exerciseId = parseInt(req.params.id);
+      
+      if (isNaN(exerciseId)) {
+        res.status(400).json({ success: false, message: "El ID proporcionado no es válido." });
+        return;
+      }
+
+      const exercise = await this.getExerciseById.execute(exerciseId);
+
+      if (!exercise) {
+        res.status(404).json({ success: false, message: "Ejercicio no encontrado." });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: exercise });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
