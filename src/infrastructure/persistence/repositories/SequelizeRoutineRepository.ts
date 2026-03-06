@@ -55,7 +55,7 @@ export class SequelizeRoutineRepository implements RoutineRepository {
       order: [['id', 'DESC']] // Traemos la rutina más reciente
     });
   }
-  
+
   async findById(id: number): Promise<any | null> {
     const routine = await RoutineModel.findByPk(id, {
       include: [
@@ -67,6 +67,22 @@ export class SequelizeRoutineRepository implements RoutineRepository {
         }
       ]
     });
-    return routine ? routine.toJSON() : null;
+  }
+  // NUEVO: Implementación del historial
+  async findAllByPatientId(patientId: number): Promise<any[]> {
+    const routines = await RoutineModel.findAll({
+      where: { patientId: patientId },
+      include: [
+        {
+          model: ExerciseModel,
+          as: "exercises",
+          attributes: ['id', 'name', 'bodyZone'], // Para una lista, no necesitamos toda la descripción/video
+          through: { attributes: [] } 
+        }
+      ],
+      order: [['id', 'DESC']] // Ordenamos de la más reciente a la más antigua
+    });
+
+    return routines.map(routine => routine.toJSON());
   }
 }
