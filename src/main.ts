@@ -13,6 +13,7 @@ import { SequelizeRoutineRepository } from "./infrastructure/persistence/reposit
 import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
 import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
 import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
+import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
 
 
 // Repositorios
@@ -28,6 +29,7 @@ import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhys
 import { CreateExerciseUseCase } from "./application/use-cases/CreateExercise.uc";
 import { ListExercisesUseCase } from "./application/use-cases/ListExercises.uc";
 import { GetExerciseByIdUseCase } from "./application/use-cases/GetExerciseById.uc";
+
 
 // Controladores
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
@@ -64,6 +66,7 @@ const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
 const createRoutine = new CreateRoutineUseCase(routineRepo);
 const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
 const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
+const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
 
 
     // 4. Instanciar Controladores
@@ -71,7 +74,7 @@ const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises, getExerciseById);
     const trackingController = new TrackingController(registerPain);
-    const routineController = new RoutineController(createRoutine, getPatientRoutine);
+    const routineController = new RoutineController(createRoutine, getPatientRoutine, getRoutineById);
 
 
     // 5. Configurar Servidor Express

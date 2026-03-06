@@ -54,7 +54,19 @@ export class SequelizeRoutineRepository implements RoutineRepository {
       ],
       order: [['id', 'DESC']] // Traemos la rutina más reciente
     });
-
+  }
+  
+  async findById(id: number): Promise<any | null> {
+    const routine = await RoutineModel.findByPk(id, {
+      include: [
+        {
+          model: ExerciseModel,
+          as: "exercises",
+          attributes: ['id', 'name', 'bodyZone', 'description', 'videoUrl'],
+          through: { attributes: [] } 
+        }
+      ]
+    });
     return routine ? routine.toJSON() : null;
   }
 }
