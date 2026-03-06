@@ -1,52 +1,103 @@
+/**
+ * **************************************************************************
+ * CONTROLADOR DE FISIOTERAPEUTAS - INTERFACE ADAPTER
+ * PROYECTO: ACTIVA
+ * DESCRIPCIÓN: Manejo de peticiones HTTP para la gestión de especialistas médicos.
+ * **************************************************************************
+ */
+
 import { Request, Response } from "express";
 import { PhysiotherapistSchema } from "../../../application/dtos/schemas";
 
+/**
+ * Clase controladora para la entidad Fisioterapeuta.
+ * Actúa como puente entre las peticiones de la Plataforma Web y la lógica de negocio.
+ */
 export class PhysiotherapistController {
+  
+  /**
+   * Constructor: Inyecta los Casos de Uso del dominio (Inyección de Dependencias).
+   * @param createPhysio Caso de uso para el registro inicial de especialistas.
+   * @param getPhysioById Caso de uso para recuperar el perfil profesional.
+   */
   constructor(
-  private readonly createPhysio: any,
-  private readonly getPhysioById: any
+    private readonly createPhysio: any,
+    private readonly getPhysioById: any
   ) {}
 
- create = async (req: Request, res: Response): Promise<void> => {
+  // ============================================================
+  // 1. OPERACIONES DE ESCRITURA (COMMANDS)
+  // ============================================================
+
+  /**
+   * Registra un nuevo especialista en la plataforma.
+   * @endpoint POST /api/physiotherapists
+   */
+  create = async (req: Request, res: Response): Promise<void> => {
     try {
+      // Validación de integridad de datos (Zod)
       const validatedData = PhysiotherapistSchema.parse(req.body);
+      
+      // Ejecución de lógica de negocio (Incluye encriptación de contraseña)
       const physio = await this.createPhysio.execute(validatedData);
-      res.status(201).json({ success: true, data: physio });
+      
+      res.status(201).json({ 
+        success: true, 
+        message: "Especialista registrado correctamente.",
+        data: physio 
+      });
     } catch (error: any) {
-      // SOLUCIÓN: Cambiamos error.errors por error.name === 'ZodError'
+      // Manejo de errores de validación de formato
       if (error.name === 'ZodError') {
-        res.status(400).json({ success: false, message: "Error de validación de formato", errors: error.errors });
+        res.status(400).json({ 
+          success: false, 
+          message: "Datos de registro inválidos.", 
+          errors: error.errors 
+        });
         return;
       }
-      // 2. Error de Datos Duplicados (Sequelize)
+      
+      // Manejo de errores de unicidad (Cédula o CURP duplicados)
       if (error.name === 'SequelizeUniqueConstraintError') {
-        const campoDuplicado = error.errors[0]?.path || "desconocido";
-        res.status(409).json({ success: false, message: `No se puede registrar. El dato '${campoDuplicado}' (CURP o Cédula) ya pertenece a otro fisioterapeuta.` });
+        const field = error.errors[0]?.path || "desconocido";
+        res.status(409).json({ 
+          success: false, 
+          message: `Conflicto de identidad: El dato en el campo '${field}' ya se encuentra registrado.` 
+        });
         return;
       }
+
       res.status(400).json({ success: false, message: error.message });
     }
   };
-  // 2. Añadir este nuevo método
+
+  // ============================================================
+  // 2. OPERACIONES DE LECTURA (QUERIES)
+  // ============================================================
+
+  /**
+   * Recupera el perfil completo de un fisioterapeuta.
+   * @endpoint GET /api/physiotherapists/:id
+   */
   getById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
     try {
-      const physioId = parseInt(req.params.id);
+      const physioId = parseInt(req.params.id, 10);
+      
       if (isNaN(physioId)) {
-        res.status(400).json({ success: false, message: "El ID proporcionado no es válido." });
+        res.status(400).json({ success: false, message: "El ID proporcionado no es un valor numérico válido." });
         return;
       }
 
       const physio = await this.getPhysioById.execute(physioId);
 
       if (!physio) {
-        res.status(404).json({ success: false, message: "Fisioterapeuta no encontrado." });
+        res.status(404).json({ success: false, message: "Especialista no encontrado en el sistema." });
         return;
       }
 
       res.status(200).json({ success: true, data: physio });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: "Error interno al recuperar el perfil." });
     }
   };
-
 }
