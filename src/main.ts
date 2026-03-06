@@ -14,6 +14,8 @@ import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
 import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
 import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
 import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
+import { GetPatientRoutineHistoryUseCase } from "./application/use-cases/GetPatientRoutineHistory.uc";
+
 
 
 // Repositorios
@@ -67,6 +69,8 @@ const createRoutine = new CreateRoutineUseCase(routineRepo);
 const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
 const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
 const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
+const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
+
 
 
     // 4. Instanciar Controladores
@@ -74,7 +78,7 @@ const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
 const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
     const exerciseController = new ExerciseController(createExercise, listExercises, getExerciseById);
     const trackingController = new TrackingController(registerPain);
-    const routineController = new RoutineController(createRoutine, getPatientRoutine, getRoutineById);
+    const routineController = new RoutineController(createRoutine, getPatientRoutine,getRoutineById, getPatientRoutineHistory);
 
 
     // 5. Configurar Servidor Express

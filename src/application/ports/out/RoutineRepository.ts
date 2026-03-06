@@ -7,4 +7,6 @@ export interface RoutineRepository {
   findActiveByPatientId(patientId: number): Promise<any | null>;
   // NUEVO: Buscar rutina por su propio ID
   findById(id: number): Promise<any | null>;
+  // NUEVO: Buscar el historial completo de rutinas de un paciente
+  findAllByPatientId(patientId: number): Promise<any[]>;
 }
