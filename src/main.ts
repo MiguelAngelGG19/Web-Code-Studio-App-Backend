@@ -1,111 +1,181 @@
-import express from "express";
-// Usamos el estándar preferido por TypeScript moderno
-import cors from "cors"; 
+/**
+ * **************************************************************************
+ * PROYECTO: ACTIVA - API BACKEND
+ * ARQUITECTO: Miguel Ángel Galicia García
+ * DESCRIPCIÓN: Punto de entrada principal (Bootstrap)
+ * **************************************************************************
+ */
+
+import express, { Application } from "express";
+import cors from "cors";
 import * as dotenv from "dotenv";
+
+// 1. INFRAESTRUCTURA CORE
 import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
-import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
-import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
-import { SequelizeTrackingRepository } from "./infrastructure/persistence/repositories/SequelizeTrackingRepository";
-import { RegisterPainLevelUseCase } from "./application/use-cases/RegisterPainLevel.uc";
-import { TrackingController } from "./infrastructure/http/controllers/tracking.controller";
-import { SequelizeRoutineRepository } from "./infrastructure/persistence/repositories/SequelizeRoutineRepository";
-import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
-import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
-import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
-import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
-import { GetPatientRoutineHistoryUseCase } from "./application/use-cases/GetPatientRoutineHistory.uc";
 
-
-
-// Repositorios
+// 2. REPOSITORIOS (PERSISTENCIA)
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
 import { SequelizePhysiotherapistRepository } from "./infrastructure/persistence/repositories/SequelizePhysiotherapistRepository";
 import { SequelizeExerciseRepository } from "./infrastructure/persistence/repositories/SequelizeExerciseRepository";
+import { SequelizeTrackingRepository } from "./infrastructure/persistence/repositories/SequelizeTrackingRepository";
+import { SequelizeRoutineRepository } from "./infrastructure/persistence/repositories/SequelizeRoutineRepository";
 
-// Casos de Uso
+// 3. CASOS DE USO (LÓGICA DE NEGOCIO)
+// --- Pacientes ---
 import { CreatePatientUseCase } from "./application/use-cases/CreatePatient.uc";
 import { ListPatientsUseCase } from "./application/use-cases/ListPatients.uc";
-import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc"; // <- 1. IMPORTAR
+import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc";
+import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
+
+// --- Fisioterapeutas ---
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
+import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
+
+// --- Ejercicios ---
 import { CreateExerciseUseCase } from "./application/use-cases/CreateExercise.uc";
 import { ListExercisesUseCase } from "./application/use-cases/ListExercises.uc";
 import { GetExerciseByIdUseCase } from "./application/use-cases/GetExerciseById.uc";
 
+// --- Seguimiento (Tracking) ---
+import { RegisterPainLevelUseCase } from "./application/use-cases/RegisterPainLevel.uc";
 
-// Controladores
+// --- Rutinas ---
+import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
+import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
+import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
+import { GetPatientRoutineHistoryUseCase } from "./application/use-cases/GetPatientRoutineHistory.uc";
+
+// 4. CONTROLADORES (HTTP INTERFACE)
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
 import { PhysiotherapistController } from "./infrastructure/http/controllers/physiotherapist.controller";
 import { ExerciseController } from "./infrastructure/http/controllers/exercise.controller";
+import { TrackingController } from "./infrastructure/http/controllers/tracking.controller";
+import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
 
+// Cargar variables de entorno (.env)
 dotenv.config();
 
+/**
+ * Función de arranque del servidor
+ */
 async function bootstrap() {
   try {
-    // 1. Conectar a la Base de Datos
+    console.log("🚀 Iniciando servidor Activa...");
+
+    // ============================================================
+    // FASE 1: CONEXIÓN A BASE DE DATOS
+    // ============================================================
     await sequelize.authenticate();
     console.log("✅ Conexión a MySQL (Sequelize) establecida con éxito.");
 
-    // 2. Instanciar Repositorios
+    // ============================================================
+    // FASE 2: INSTANCIACIÓN DE REPOSITORIOS (INFRAESTRUCTURA)
+    // ============================================================
     const patientRepo = new SequelizePatientRepository();
     const physioRepo = new SequelizePhysiotherapistRepository();
     const exerciseRepo = new SequelizeExerciseRepository();
     const trackingRepo = new SequelizeTrackingRepository();
     const routineRepo = new SequelizeRoutineRepository();
-    // 3. Instanciar Casos de Uso
+
+    // ============================================================
+    // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
+    // Se inyectan los repositorios necesarios a cada caso de uso.
+    // ============================================================
+    
+    // Casos de Uso: Pacientes
     const createPatient = new CreatePatientUseCase(patientRepo);
     const listPatients = new ListPatientsUseCase(patientRepo);
-    const updatePatient = new UpdatePatientUseCase(patientRepo); // <- 2. INSTANCIAR
-    const registerPain = new RegisterPainLevelUseCase(trackingRepo);
+    const updatePatient = new UpdatePatientUseCase(patientRepo);
+    const getPatientById = new GetPatientByIdUseCase(patientRepo);
 
+    // Casos de Uso: Fisioterapeutas
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
+    const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
+
+    // Casos de Uso: Ejercicios
     const createExercise = new CreateExerciseUseCase(exerciseRepo);
     const listExercises = new ListExercisesUseCase(exerciseRepo);
+    const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
 
-    const getPatientById = new GetPatientByIdUseCase(patientRepo);
-const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
+    // Casos de Uso: Seguimiento
+    const registerPain = new RegisterPainLevelUseCase(trackingRepo);
 
-const createRoutine = new CreateRoutineUseCase(routineRepo);
-const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
-const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
-const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
-const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
+    // Casos de Uso: Rutinas
+    const createRoutine = new CreateRoutineUseCase(routineRepo);
+    const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
+    const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
+    const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
 
+    // ============================================================
+    // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
+    // Se agrupan los casos de uso por dominio en sus controladores.
+    // ============================================================
+    const patientController = new PatientController(
+      createPatient, 
+      listPatients, 
+      updatePatient, 
+      getPatientById
+    );
 
+    const physioController = new PhysiotherapistController(
+      createPhysio, 
+      getPhysioById
+    );
 
-    // 4. Instanciar Controladores
-    const patientController = new PatientController(createPatient, listPatients, updatePatient, getPatientById);
-const physioController = new PhysiotherapistController(createPhysio, getPhysioById);
-    const exerciseController = new ExerciseController(createExercise, listExercises, getExerciseById);
-    const trackingController = new TrackingController(registerPain);
-    const routineController = new RoutineController(createRoutine, getPatientRoutine,getRoutineById, getPatientRoutineHistory);
+    const exerciseController = new ExerciseController(
+      createExercise, 
+      listExercises, 
+      getExerciseById
+    );
 
+    const trackingController = new TrackingController(
+      registerPain
+    );
 
-    // 5. Configurar Servidor Express
-    const app = express();
+    const routineController = new RoutineController(
+      createRoutine, 
+      getPatientRoutine, 
+      getRoutineById, 
+      getPatientRoutineHistory
+    );
+
+    // ============================================================
+    // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
+    // ============================================================
+    const app: Application = express();
     
-    // Configuración de CORS con la función importada
-    app.use(cors()); 
-    
-    app.use(express.json());
+    app.use(cors()); // Habilitar peticiones desde Angular y App Móvil
+    app.use(express.json()); // Habilitar lectura de JSON en el Body
 
-    // 6. Conectar Rutas
-    app.use("/api", buildRoutes({ patientController, physioController, exerciseController, trackingController, routineController }));
+    // ============================================================
+    // FASE 6: REGISTRO DE RUTAS
+    // ============================================================
+    app.use("/api", buildRoutes({ 
+      patientController, 
+      physioController, 
+      exerciseController, 
+      trackingController, 
+      routineController 
+    }));
 
-
-    // 7. Encender Servidor
+    // ============================================================
+    // FASE 7: LANZAMIENTO
+    // ============================================================
     const port = Number(process.env.PORT) || 3000;
     app.listen(port, () => {
       console.log("--------------------------------------------------");
-      console.log(`🚀 API DE ACTIVA CORRIENDO`);
-      console.log(`🔗 URL: http://localhost:${port}`);
+      console.log(`📡 API DE ACTIVA ESCUCHANDO`);
+      console.log(`🔗 URL LOCAL: http://localhost:${port}`);
+      console.log(`📝 ESTADO: Operativo`);
       console.log("--------------------------------------------------");
     });
 
   } catch (error) {
-    console.error("❌ Error fatal al iniciar el servidor:", error);
+    console.error("❌ Error crítico durante el arranque:", error);
     process.exit(1);
   }
 }
 
+// Iniciar el proceso
 bootstrap();
