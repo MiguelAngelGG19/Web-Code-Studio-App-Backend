@@ -10,9 +10,17 @@ import express, { Application } from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
 
+// Auth
+import { SequelizeAuthRepository } from "./infrastructure/persistence/repositories/SequelizeAuthRepository";
+import { RegisterPhysiotherapistUseCase } from "./application/use-cases/RegisterPhysiotherapist.uc";
+import { LoginPhysiotherapistUseCase } from "./application/use-cases/LoginPhysiotherapist.uc";
+import { AuthController } from "./infrastructure/http/controllers/auth.controller";
+
+
 // 1. INFRAESTRUCTURA CORE
 import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
+
 
 // 2. REPOSITORIOS (PERSISTENCIA)
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
@@ -77,6 +85,8 @@ async function bootstrap() {
     const exerciseRepo = new SequelizeExerciseRepository();
     const trackingRepo = new SequelizeTrackingRepository();
     const routineRepo = new SequelizeRoutineRepository();
+    const authRepo = new SequelizeAuthRepository();
+
 
     // ============================================================
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
@@ -106,6 +116,11 @@ async function bootstrap() {
     const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
     const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
     const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
+
+    // Casos de Uso: Auth
+     const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
+     const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
+
 
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
@@ -140,6 +155,9 @@ async function bootstrap() {
       getPatientRoutineHistory
     );
 
+    const authController = new AuthController(registerPhysio, loginPhysio);
+
+
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
     // ============================================================
@@ -151,13 +169,15 @@ async function bootstrap() {
     // ============================================================
     // FASE 6: REGISTRO DE RUTAS
     // ============================================================
-    app.use("/api", buildRoutes({ 
-      patientController, 
-      physioController, 
-      exerciseController, 
-      trackingController, 
-      routineController 
-    }));
+    app.use("/api", buildRoutes({
+  patientController,
+  physioController,
+  exerciseController,
+  trackingController,
+  routineController,
+  authController,   // ← agregar esta línea
+}));
+
 
     // ============================================================
     // FASE 7: LANZAMIENTO
