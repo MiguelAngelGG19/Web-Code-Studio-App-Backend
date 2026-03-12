@@ -37,4 +37,10 @@ export class SequelizePatientRepository implements PatientRepository {
     return patient ? (patient.toJSON() as Patient) : null;
   }
 
+  async findByEmail(email: string): Promise<any | null> {
+  const patient = await PatientModel.findOne({ where: { email } });
+  return patient ? patient.get({ plain: true }) : null;
+}
+
+
 }

@@ -6,4 +6,6 @@ export interface PatientRepository {
   findAll(limit: number, offset: number): Promise<{ rows: Patient[]; count: number }>;
   update(id: number, data: UpdatePatientDTO): Promise<Patient | null>;
   findById(id: number): Promise<Patient | null>;
+  findByEmail(email: string): Promise<any | null>;
+
 }

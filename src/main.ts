@@ -15,6 +15,8 @@ import { SequelizeAuthRepository } from "./infrastructure/persistence/repositori
 import { RegisterPhysiotherapistUseCase } from "./application/use-cases/RegisterPhysiotherapist.uc";
 import { LoginPhysiotherapistUseCase } from "./application/use-cases/LoginPhysiotherapist.uc";
 import { AuthController } from "./infrastructure/http/controllers/auth.controller";
+import { LoginPatientWithGoogleUseCase } from "./application/use-cases/LoginPatientWithGoogle.uc";
+
 
 
 // 1. INFRAESTRUCTURA CORE
@@ -35,6 +37,7 @@ import { CreatePatientUseCase } from "./application/use-cases/CreatePatient.uc";
 import { ListPatientsUseCase } from "./application/use-cases/ListPatients.uc";
 import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc";
 import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
+
 
 // --- Fisioterapeutas ---
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
@@ -98,6 +101,8 @@ async function bootstrap() {
     const listPatients = new ListPatientsUseCase(patientRepo);
     const updatePatient = new UpdatePatientUseCase(patientRepo);
     const getPatientById = new GetPatientByIdUseCase(patientRepo);
+    const loginPatientGoogle = new LoginPatientWithGoogleUseCase(patientRepo);
+
 
     // Casos de Uso: Fisioterapeutas
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
@@ -155,7 +160,12 @@ async function bootstrap() {
       getPatientRoutineHistory
     );
 
-    const authController = new AuthController(registerPhysio, loginPhysio);
+    const authController = new AuthController(
+  registerPhysio, 
+  loginPhysio,
+  loginPatientGoogle  // ← nuevo
+);
+
 
 
     // ============================================================
