@@ -41,18 +41,24 @@ export const sequelize = new Sequelize(
 export const PhysiotherapistModel = sequelize.define(
   "Physiotherapist",
   {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "idFisioterapeuta" },
-    firstName: { type: DataTypes.STRING, field: "first_name" },
-    lastNameP: { type: DataTypes.STRING, field: "last_name_p" },
-    lastNameM: { type: DataTypes.STRING, field: "last_name_m" },
-    birthYear: { type: DataTypes.INTEGER, field: "birth_year" },
-    email: { type: DataTypes.STRING, field: "email", unique: true },
-    password: { type: DataTypes.STRING, field: "password" },
-    professionalLicense: { type: DataTypes.STRING, field: "professional_license", unique: true },
-    curp: { type: DataTypes.STRING, field: "curp", unique: true },
+    id:                  { type: DataTypes.INTEGER,  primaryKey: true, autoIncrement: true, field: "idFisioterapeuta" },
+    firstName:           { type: DataTypes.STRING,   field: "first_name" },
+    lastNameP:           { type: DataTypes.STRING,   field: "last_name_p" },
+    lastNameM:           { type: DataTypes.STRING,   field: "last_name_m" },
+    email:               { type: DataTypes.STRING,   field: "email", unique: true },
+    password:            { type: DataTypes.STRING,   field: "password" },
+    status:              { type: DataTypes.ENUM("pendiente", "activo", "suspendido"), field: "status", defaultValue: "pendiente" },
+    emailVerified:       { type: DataTypes.BOOLEAN,  field: "email_verified", defaultValue: false },
+    verificationToken:   { type: DataTypes.STRING,   field: "verification_token", allowNull: true },
+    birthYear:           { type: DataTypes.INTEGER,  field: "birth_year" },
+    professionalLicense: { type: DataTypes.STRING,   field: "professional_license", unique: true },
+    licenseDocUrl:       { type: DataTypes.STRING,   field: "license_doc_url", allowNull: true },
+    curp:                { type: DataTypes.STRING,   field: "curp", unique: true },
+    ineDocUrl:           { type: DataTypes.STRING,   field: "ine_doc_url", allowNull: true },
   },
   { tableName: "fisioterapeuta" }
 );
+
 
 /**
  * Modelo: Paciente

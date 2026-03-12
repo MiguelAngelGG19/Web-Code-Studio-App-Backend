@@ -1,38 +1,49 @@
 import { Router } from "express";
+import { authMiddleware } from "./middlewares/auth.middleware";
 
-// Recibimos los controladores ya instanciados desde main.ts
 export function buildRoutes(controllers: {
-  patientController: any;
-  physioController: any;
-  exerciseController: any;
-  trackingController: any;
-  routineController: any; 
+  patientController:    any;
+  physioController:     any;
+  exerciseController:   any;
+  trackingController:   any;
+  routineController:    any;
+  authController:       any;
 }) {
   const router = Router();
 
-  // Rutas de Fisioterapeutas
-  router.post("/physiotherapists", controllers.physioController.create);
-  router.get("/physiotherapists/:id", controllers.physioController.getById);
+  // ============================================================
+  // RUTAS PÚBLICAS (sin token)
+  // ============================================================
+  router.post("/auth/register", controllers.authController.register);
+  router.post("/auth/login",    controllers.authController.login);
 
-  // Rutas de Pacientes
-  router.post("/patients", controllers.patientController.create);
-  router.get("/patients", controllers.patientController.list);
-  router.put("/patients/:id", controllers.patientController.update);
-  router.get("/patients/:id", controllers.patientController.getById);
+  // ============================================================
+  // RUTAS PROTEGIDAS (requieren JWT)
+  // ============================================================
 
-  // Rutas de Ejercicios
-  router.post("/exercises", controllers.exerciseController.create);
-  router.get("/exercises", controllers.exerciseController.list);
-  router.get("/exercises/:id", controllers.exerciseController.getById);
+  // Fisioterapeutas
+  router.post("/physiotherapists",     authMiddleware, controllers.physioController.create);
+  router.get("/physiotherapists/:id",  authMiddleware, controllers.physioController.getById);
 
-  // Rutas de Seguimiento (Molestias)
-  router.post("/tracking", controllers.trackingController.create);
+  // Pacientes
+  router.post("/patients",     authMiddleware, controllers.patientController.create);
+  router.get("/patients",      authMiddleware, controllers.patientController.list);
+  router.put("/patients/:id",  authMiddleware, controllers.patientController.update);
+  router.get("/patients/:id",  authMiddleware, controllers.patientController.getById);
 
-  // Rutas de Rutinas (Se eliminó el POST duplicado que había)
-  router.post("/routines", controllers.routineController.create);
-  router.get("/routines/patient/:patientId", controllers.routineController.getByPatient);
-  router.get("/routines/history/patient/:patientId", controllers.routineController.getHistoryByPatient);
-  router.get("/routines/:id", controllers.routineController.getById); 
+  // Ejercicios
+  router.post("/exercises",     authMiddleware, controllers.exerciseController.create);
+  router.get("/exercises",      authMiddleware, controllers.exerciseController.list);
+  router.get("/exercises/:id",  authMiddleware, controllers.exerciseController.getById);
+
+  // Seguimiento
+  router.post("/tracking", authMiddleware, controllers.trackingController.create);
+
+  // Rutinas
+  router.post("/routines",                              authMiddleware, controllers.routineController.create);
+  router.get("/routines/patient/:patientId",            authMiddleware, controllers.routineController.getByPatient);
+  router.get("/routines/history/patient/:patientId",    authMiddleware, controllers.routineController.getHistoryByPatient);
+  router.get("/routines/:id",                           authMiddleware, controllers.routineController.getById);
 
   return router;
 }
