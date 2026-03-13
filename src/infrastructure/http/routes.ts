@@ -26,6 +26,9 @@ export function buildRoutes(controllers: {
   // Fisioterapeutas
   router.post("/physiotherapists",     authMiddleware, controllers.physioController.create);
   router.get("/physiotherapists/:id",  authMiddleware, controllers.physioController.getById);
+  router.get("/physiotherapists/pending",      authMiddleware, controllers.physioController.listPending);
+router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
+
 
   // Pacientes
   router.post("/patients",     authMiddleware, controllers.patientController.create);

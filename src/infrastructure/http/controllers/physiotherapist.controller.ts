@@ -8,6 +8,9 @@
 
 import { Request, Response } from "express";
 import { PhysiotherapistSchema } from "../../../application/dtos/schemas";
+import { ApprovePhysiotherapistUseCase } from "../../../application/use-cases/ApprovePhysiotherapist.uc";
+import { ListPendingPhysiotherapistsUseCase } from "../../../application/use-cases/ListPendingPhysiotherapists.uc";
+
 
 /**
  * Clase controladora para la entidad Fisioterapeuta.
@@ -22,7 +25,9 @@ export class PhysiotherapistController {
    */
   constructor(
     private readonly createPhysio: any,
-    private readonly getPhysioById: any
+    private readonly getPhysioById: any,
+    private readonly approveUseCase:      ApprovePhysiotherapistUseCase,      // ← nuevo
+  private readonly listPendingUseCase:  ListPendingPhysiotherapistsUseCase // ← nuevo
   ) {}
 
   // ============================================================
@@ -100,4 +105,24 @@ export class PhysiotherapistController {
       res.status(500).json({ success: false, message: "Error interno al recuperar el perfil." });
     }
   };
+  approve = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    const { action } = req.body; // "activo" o "suspendido"
+    const result = await this.approveUseCase.execute(id, action);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+listPending = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await this.listPendingUseCase.execute();
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 }

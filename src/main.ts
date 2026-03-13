@@ -16,6 +16,9 @@ import { RegisterPhysiotherapistUseCase } from "./application/use-cases/Register
 import { LoginPhysiotherapistUseCase } from "./application/use-cases/LoginPhysiotherapist.uc";
 import { AuthController } from "./infrastructure/http/controllers/auth.controller";
 import { LoginPatientWithGoogleUseCase } from "./application/use-cases/LoginPatientWithGoogle.uc";
+import { ApprovePhysiotherapistUseCase } from "./application/use-cases/ApprovePhysiotherapist.uc";
+import { ListPendingPhysiotherapistsUseCase } from "./application/use-cases/ListPendingPhysiotherapists.uc";
+
 
 
 
@@ -107,6 +110,8 @@ async function bootstrap() {
     // Casos de Uso: Fisioterapeutas
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
     const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
+    const approvePhysio     = new ApprovePhysiotherapistUseCase(physioRepo);
+const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
 
     // Casos de Uso: Ejercicios
     const createExercise = new CreateExerciseUseCase(exerciseRepo);
@@ -139,9 +144,11 @@ async function bootstrap() {
     );
 
     const physioController = new PhysiotherapistController(
-      createPhysio, 
-      getPhysioById
-    );
+  createPhysio,
+  getPhysioById,
+  approvePhysio,      // ← nuevo
+  listPendingPhysio,  // ← nuevo
+);
 
     const exerciseController = new ExerciseController(
       createExercise, 

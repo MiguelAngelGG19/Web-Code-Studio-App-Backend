@@ -4,4 +4,6 @@ import { CreatePhysiotherapistDTO } from "../../dtos/physiotherapist.dto";
 export interface PhysiotherapistRepository {
   create(data: CreatePhysiotherapistDTO): Promise<Physiotherapist>;
   findById(id: number): Promise<Physiotherapist | null>;
+  updateStatus(id: number, status: "pendiente" | "activo" | "suspendido"): Promise<void>;
+findByStatus(status: string): Promise<any[]>;
 }
