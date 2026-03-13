@@ -1,16 +1,24 @@
 import { PhysiotherapistRepository } from "../../../application/ports/out/PhysiotherapistRepository";
-import { CreatePhysiotherapistDTO } from "../../../application/dtos/physiotherapist.dto";
-import { Physiotherapist } from "../../../domain/entities/Physiotherapist";
 import { PhysiotherapistModel } from "../sequelize/client";
 
 export class SequelizePhysiotherapistRepository implements PhysiotherapistRepository {
-  async create(data: CreatePhysiotherapistDTO): Promise<Physiotherapist> {
-    const created = await PhysiotherapistModel.create(data as any);
-    return created.toJSON() as Physiotherapist;
+
+  async create(data: any): Promise<any> {
+    const nuevo = await PhysiotherapistModel.create(data);
+    return nuevo.get({ plain: true });
   }
-  // NUEVO: Método para Buscar por ID
-  async findById(id: number): Promise<Physiotherapist | null> {
-    const physio = await PhysiotherapistModel.findByPk(id);
-    return physio ? (physio.toJSON() as Physiotherapist) : null;
+
+  async findById(id: number): Promise<any | null> {
+    const fisio = await PhysiotherapistModel.findByPk(id);
+    return fisio ? fisio.get({ plain: true }) : null;
+  }
+
+  async updateStatus(id: number, status: "pendiente" | "activo" | "suspendido"): Promise<void> {
+    await PhysiotherapistModel.update({ status }, { where: { id } });
+  }
+
+  async findByStatus(status: string): Promise<any[]> {
+    const fisios = await PhysiotherapistModel.findAll({ where: { status } });
+    return fisios.map(f => f.get({ plain: true }));
   }
 }
