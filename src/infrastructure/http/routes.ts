@@ -24,9 +24,10 @@ export function buildRoutes(controllers: {
   // ============================================================
 
   // Fisioterapeutas
-  router.post("/physiotherapists",     authMiddleware, controllers.physioController.create);
-  router.get("/physiotherapists/:id",  authMiddleware, controllers.physioController.getById);
-  router.get("/physiotherapists/pending",      authMiddleware, controllers.physioController.listPending);
+  // Fisioterapeutas ← ORDEN CORRECTO
+router.get("/physiotherapists/pending",       authMiddleware, controllers.physioController.listPending);
+router.post("/physiotherapists",              authMiddleware, controllers.physioController.create);
+router.get("/physiotherapists/:id",           authMiddleware, controllers.physioController.getById);
 router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
 
 
