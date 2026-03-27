@@ -4,7 +4,7 @@ export interface IAuthRepository {
     firstName: string;
     lastNameP: string;
     lastNameM: string;
-    birthYear: number;
+    birthDate: string;   // ← cambiar birthYear: number → birthDate: string
     email: string;
     password: string;
     professionalLicense: string;

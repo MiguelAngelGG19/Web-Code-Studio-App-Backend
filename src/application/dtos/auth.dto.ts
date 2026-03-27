@@ -2,7 +2,7 @@ export interface RegisterPhysiotherapistDto {
   firstName: string;
   lastNameP: string;
   lastNameM: string;
-  birthYear: number;
+  birthDate: string;
   email: string;
   password: string;
   professionalLicense: string;
