@@ -18,6 +18,7 @@ import { AuthController } from "./infrastructure/http/controllers/auth.controlle
 import { LoginPatientWithGoogleUseCase } from "./application/use-cases/LoginPatientWithGoogle.uc";
 import { ApprovePhysiotherapistUseCase } from "./application/use-cases/ApprovePhysiotherapist.uc";
 import { ListPendingPhysiotherapistsUseCase } from "./application/use-cases/ListPendingPhysiotherapists.uc";
+import { LoginPatientByEmailUseCase } from "./application/use-cases/LoginPatientByEmail.uc";
 
 
 
@@ -130,6 +131,7 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     // Casos de Uso: Auth
      const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
      const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
+     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
 
 
     // ============================================================
@@ -168,9 +170,9 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     );
 
     const authController = new AuthController(
-  registerPhysio, 
+  registerPhysio,
   loginPhysio,
-  loginPatientGoogle  // ← nuevo
+  loginPatientEmail  // ← antes era loginPatientGoogle
 );
 
 

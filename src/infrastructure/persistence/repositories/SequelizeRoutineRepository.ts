@@ -1,6 +1,7 @@
 import { RoutineRepository } from "../../../application/ports/out/RoutineRepository";
 import { CreateRoutineDTO } from "../../../application/dtos/routine.dto";
-import { RoutineModel, ExerciseRoutineModel, ExerciseModel, sequelize } from "../sequelize/client";
+import { RoutineModel, RoutineExerciseModel, ExerciseModel, sequelize } from "../sequelize/client";
+
 
 export class SequelizeRoutineRepository implements RoutineRepository {
   
@@ -27,7 +28,7 @@ export class SequelizeRoutineRepository implements RoutineRepository {
       }));
 
       // 3. Guardamos todos los vínculos de golpe (bulkCreate)
-      await ExerciseRoutineModel.bulkCreate(exerciseRoutineData, { transaction });
+      await RoutineExerciseModel.bulkCreate(exerciseRoutineData, { transaction });
 
       // Si todo sale bien, confirmamos (commit)
       await transaction.commit();

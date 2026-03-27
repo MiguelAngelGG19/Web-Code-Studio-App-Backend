@@ -16,7 +16,7 @@ export function buildRoutes(controllers: {
   // ============================================================
   router.post("/auth/register", controllers.authController.register);
   router.post("/auth/login",    controllers.authController.login);
-  router.post("/auth/google-patient", controllers.authController.loginWithGoogle);
+  router.post("/auth/login-patient", controllers.authController.loginPatient);
 
 
   // ============================================================
