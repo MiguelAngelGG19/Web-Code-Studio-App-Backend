@@ -15,7 +15,8 @@ export const PatientSchema = z.object({
   firstName: z.string().min(2, "El nombre es obligatorio"),
   lastNameP: z.string().min(2, "El apellido paterno es obligatorio"),
   lastNameM: z.string().optional(),
-  birthYear: z.number().int().min(1900, "Año de nacimiento inválido").max(new Date().getFullYear()),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato inválido, usa YYYY-MM-DD"),
+
   sex: z.string().length(1, "El sexo debe ser M o F"),
   height: z.number().positive("La estatura debe ser un número positivo"),
   weight: z.number().positive("El peso debe ser un número positivo"),
