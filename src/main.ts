@@ -26,7 +26,7 @@ import { LoginPatientByEmailUseCase } from "./application/use-cases/LoginPatient
 // 1. INFRAESTRUCTURA CORE
 import { sequelize } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
-
+import { errorHandler } from "./infrastructure/http/middlewares/error.middleware";
 
 // 2. REPOSITORIOS (PERSISTENCIA)
 import { SequelizePatientRepository } from "./infrastructure/persistence/repositories/SequelizePatientRepository";
@@ -202,6 +202,7 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     // FASE 7: LANZAMIENTO
     // ============================================================
     const port = Number(process.env.PORT) || 3000;
+    app.use(errorHandler);
     app.listen(port, () => {
       console.log("--------------------------------------------------");
       console.log(`📡 API DE ACTIVA ESCUCHANDO`);

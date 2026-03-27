@@ -108,13 +108,21 @@ export class PhysiotherapistController {
   approve = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = Number(req.params.id);
-    const { action } = req.body; // "activo" o "suspendido"
+    const { action } = req.body; // "approved" o "rejected"
+
+    if (action !== "approved" && action !== "rejected") {
+      res.status(400).json({ message: "Acción inválida. Usa 'approved' o 'rejected'." });
+      return;
+    }
+
     const result = await this.approveUseCase.execute(id, action);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
 };
+
+
 
 listPending = async (req: Request, res: Response): Promise<void> => {
   try {
