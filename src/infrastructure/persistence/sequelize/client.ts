@@ -2,180 +2,233 @@
  * **************************************************************************
  * MÓDULO DE PERSISTENCIA - SEQUELIZE CLIENT
  * PROYECTO: ACTIVA
- * DESCRIPCIÓN: Configuración de conexión y definición del Modelo Entidad-Relación.
+ * BD: Nueva estructura en inglés - Versión final
  * **************************************************************************
  */
 
 import { Sequelize, DataTypes, Model } from "sequelize";
 import * as dotenv from "dotenv";
-
 dotenv.config();
 
 // ============================================================
-// 1. CONFIGURACIÓN DE CONEXIÓN (POOL DE CONEXIONES)
+// 1. CONEXIÓN
 // ============================================================
 export const sequelize = new Sequelize(
   process.env.DB_NAME || "activa",
   process.env.DB_USER || "root",
   process.env.DB_PASS || "",
   {
-    host: process.env.DB_HOST || "localhost",
+    host:    process.env.DB_HOST || "localhost",
     dialect: "mysql",
-    port: Number(process.env.DB_PORT) || 3306,
-    logging: false, // Desactivado para mantener la consola limpia
-    define: {
-      timestamps: false, // Las tablas no usan createdAt/updatedAt por defecto
-      freezeTableName: true // Evita que Sequelize pluralice los nombres de las tablas
-    }
+    port:    Number(process.env.DB_PORT) || 3306,
+    logging: false,
+    define:  { timestamps: false, freezeTableName: true }
   }
 );
 
 // ============================================================
-// 2. DEFINICIÓN DE MODELOS (TABLAS)
+// 2. MODELOS
 // ============================================================
 
-/**
- * Modelo: Fisioterapeuta
- * Representa al especialista médico que gestiona pacientes y rutinas.
- */
-export const PhysiotherapistModel = sequelize.define(
-  "Physiotherapist",
-  {
-    id:                  { type: DataTypes.INTEGER,  primaryKey: true, autoIncrement: true, field: "idFisioterapeuta" },
-    firstName:           { type: DataTypes.STRING,   field: "first_name" },
-    lastNameP:           { type: DataTypes.STRING,   field: "last_name_p" },
-    lastNameM:           { type: DataTypes.STRING,   field: "last_name_m" },
-    email:               { type: DataTypes.STRING,   field: "email", unique: true },
-    password:            { type: DataTypes.STRING,   field: "password" },
-    status:              { type: DataTypes.ENUM("pendiente", "activo", "suspendido"), field: "status", defaultValue: "pendiente" },
-    emailVerified:       { type: DataTypes.BOOLEAN,  field: "email_verified", defaultValue: false },
-    verificationToken:   { type: DataTypes.STRING,   field: "verification_token", allowNull: true },
-    birthYear:           { type: DataTypes.INTEGER,  field: "birth_year" },
-    professionalLicense: { type: DataTypes.STRING,   field: "professional_license", unique: true },
-    licenseDocUrl:       { type: DataTypes.STRING,   field: "license_doc_url", allowNull: true },
-    curp:                { type: DataTypes.STRING,   field: "curp", unique: true },
-    ineDocUrl:           { type: DataTypes.STRING,   field: "ine_doc_url", allowNull: true },
-  },
-  { tableName: "fisioterapeuta" }
-);
+// --- USERS ---
+export const UserModel = sequelize.define("User", {
+  id_user:    { type: DataTypes.INTEGER,  primaryKey: true, autoIncrement: true },
+  email:      { type: DataTypes.STRING,   allowNull: false, unique: true },
+  password:   { type: DataTypes.STRING,   allowNull: true },
+  google_id:  { type: DataTypes.STRING,   allowNull: true },
+  role:       { type: DataTypes.ENUM("admin", "physio", "patient"), allowNull: false },
+  created_at: { type: DataTypes.DATE,     defaultValue: DataTypes.NOW }
+}, { tableName: "users" });
 
+// --- ADMIN ---
+export const AdminModel = sequelize.define("Admin", {
+  id_admin:   { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name:       { type: DataTypes.STRING  },
+  created_at: { type: DataTypes.DATE,   defaultValue: DataTypes.NOW },
+  id_user:    { type: DataTypes.INTEGER, allowNull: false, unique: true }
+}, { tableName: "admin" });
 
-/**
- * Modelo: Paciente
- * Información clínica y física del usuario final.
- */
-export const PatientModel = sequelize.define(
-  "Patient",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "idPaciente" },
-    firstName: { type: DataTypes.STRING, field: "first_name" },
-    lastNameP: { type: DataTypes.STRING, field: "last_name_p" },
-    lastNameM: { type: DataTypes.STRING, field: "last_name_m" },
-    birthYear: { type: DataTypes.INTEGER, field: "birth_year" },
-    sex: { type: DataTypes.STRING, field: "sex" },
-    height: { type: DataTypes.FLOAT, field: "height" },
-    weight: { type: DataTypes.FLOAT, field: "weight" },
-    email: { type: DataTypes.STRING, field: "email", unique: true },
-    physiotherapistId: { type: DataTypes.INTEGER, field: "physiotherapist_id" },
-  },
-  { tableName: "paciente" }
-);
+// --- PHYSIOTHERAPIST ---
+export const PhysiotherapistModel = sequelize.define("Physiotherapist", {
+  id_physio:            { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  first_name:           { type: DataTypes.STRING,  allowNull: false },
+  last_name_paternal:   { type: DataTypes.STRING  },
+  last_name_maternal:   { type: DataTypes.STRING  },
+  birth_date:           { type: DataTypes.DATEONLY },
+  professional_license: { type: DataTypes.STRING  },
+  license_doc_url:      { type: DataTypes.TEXT,    allowNull: true },
+  curp:                 { type: DataTypes.STRING  },
+  ine_doc_url:          { type: DataTypes.TEXT,    allowNull: true },
+  status:               { type: DataTypes.ENUM("pending_profile","pending_approval","approved","rejected"), defaultValue: "pending_profile" },
+  created_at:           { type: DataTypes.DATE,    defaultValue: DataTypes.NOW },
+  id_user:              { type: DataTypes.INTEGER, allowNull: false, unique: true },
+  id_admin:             { type: DataTypes.INTEGER, allowNull: true }
+}, { tableName: "physiotherapist" });
 
-/**
- * Modelo: Ejercicio
- * Catálogo multimedia de movimientos de rehabilitación.
- */
-export const ExerciseModel = sequelize.define(
-  "Exercise",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "idEjercicio" },
-    name: { type: DataTypes.STRING, field: "name", unique: true },
-    bodyZone: { type: DataTypes.STRING, field: "body_zone" },
-    description: { type: DataTypes.TEXT, field: "description" },
-    videoUrl: { type: DataTypes.STRING, field: "video_url" },
-  },
-  { tableName: "ejercicio" }
-);
+// --- PATIENT ---
+export const PatientModel = sequelize.define("Patient", {
+  id_patient:         { type: DataTypes.INTEGER,  primaryKey: true, autoIncrement: true },
+  first_name:         { type: DataTypes.STRING,   allowNull: false },
+  last_name_paternal: { type: DataTypes.STRING   },
+  last_name_maternal: { type: DataTypes.STRING   },
+  birth_date:         { type: DataTypes.DATEONLY  },
+  gender:             { type: DataTypes.ENUM("M","F","Other") },
+  height:             { type: DataTypes.DECIMAL(5,2) },
+  weight:             { type: DataTypes.DECIMAL(5,2) },
+  created_at:         { type: DataTypes.DATE,     defaultValue: DataTypes.NOW },
+  id_user:            { type: DataTypes.INTEGER,  allowNull: false, unique: true },
+  id_physio:          { type: DataTypes.INTEGER,  allowNull: false }
+}, { tableName: "patient" });
 
-/**
- * Modelo: Rutina
- * La "Receta" que une a un paciente con un set de ejercicios y fechas.
- */
-export const RoutineModel = sequelize.define(
-  "Routine",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "idRutina" },
-    name: { type: DataTypes.STRING, field: "name" },
-    startDate: { type: DataTypes.DATEONLY, field: "start_date" },
-    endDate: { type: DataTypes.DATEONLY, field: "end_date" },
-    physiotherapistId: { type: DataTypes.INTEGER, field: "physiotherapist_id" },
-    patientId: { type: DataTypes.INTEGER, field: "patient_id" },
-  },
-  { tableName: "rutina" }
-);
+// --- SCHEDULE ---
+export const ScheduleModel = sequelize.define("Schedule", {
+  id_schedule: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  day_of_week: { type: DataTypes.ENUM("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"), allowNull: false },
+  start_time:  { type: DataTypes.TIME,    allowNull: false },
+  end_time:    { type: DataTypes.TIME,    allowNull: false },
+  id_physio:   { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: "schedule" });
 
-/**
- * Modelo: Seguimiento (Tracking)
- * Registro diario del nivel de dolor y observaciones del paciente.
- */
-export const TrackingModel = sequelize.define(
-  "Tracking",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: "id" },
-    startTime: { type: DataTypes.TIME, field: "start_time" },
-    endTime: { type: DataTypes.TIME, field: "end_time" },
-    painLevel: { type: DataTypes.INTEGER, field: "pain_level" },
-    postObservations: { type: DataTypes.TEXT, field: "post_observations" },
-    intraObservations: { type: DataTypes.TEXT, field: "intra_observations" },
-    alert: { type: DataTypes.TINYINT, field: "alert" },
-    routineId: { type: DataTypes.INTEGER, field: "routine_id" },
-  },
-  { tableName: "seguimiento_rutina" }
-);
+// --- APPOINTMENT ---
+export const AppointmentModel = sequelize.define("Appointment", {
+  id_appointment: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  date:           { type: DataTypes.DATEONLY, allowNull: false },
+  start_time:     { type: DataTypes.TIME,     allowNull: false },
+  end_time:       { type: DataTypes.TIME,     allowNull: false },
+  status:         { type: DataTypes.ENUM("pending","confirmed","cancelled","completed"), defaultValue: "pending" },
+  notes:          { type: DataTypes.TEXT,     allowNull: true },
+  created_at:     { type: DataTypes.DATE,     defaultValue: DataTypes.NOW },
+  id_patient:     { type: DataTypes.INTEGER,  allowNull: false },
+  id_physio:      { type: DataTypes.INTEGER,  allowNull: false }
+}, { tableName: "appointment" });
 
-/**
- * Modelo Intermedio: Ejercicio_has_Rutina
- * Tabla técnica para la relación de Muchos a Muchos.
- */
-export const ExerciseRoutineModel = sequelize.define(
-  "ExerciseRoutine",
-  {
-    exerciseId: { type: DataTypes.INTEGER, primaryKey: true, field: "exercise_id" },
-    routineId: { type: DataTypes.INTEGER, primaryKey: true, field: "routine_id" },
-  },
-  { tableName: "ejercicio_has_rutina" }
-);
+// --- LOGBOOK ---
+export const LogbookModel = sequelize.define("Logbook", {
+  id_logbook:     { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  description:    { type: DataTypes.TEXT,    allowNull: true },
+  observations:   { type: DataTypes.TEXT,    allowNull: true },
+  date:           { type: DataTypes.DATE,    defaultValue: DataTypes.NOW },
+  id_appointment: { type: DataTypes.INTEGER, allowNull: false, unique: true }
+}, { tableName: "logbook" });
+
+// --- EXERCISE ---
+export const ExerciseModel = sequelize.define("Exercise", {
+  id_exercise: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name:        { type: DataTypes.STRING,  allowNull: false },
+  body_zone:   { type: DataTypes.STRING  },
+  description: { type: DataTypes.TEXT   },
+  video_url:   { type: DataTypes.TEXT   }
+}, { tableName: "exercise" });
+
+// --- ROUTINE ---
+export const RoutineModel = sequelize.define("Routine", {
+  id_routine:  { type: DataTypes.INTEGER,  primaryKey: true, autoIncrement: true },
+  name:        { type: DataTypes.STRING   },
+  start_date:  { type: DataTypes.DATEONLY },
+  end_date:    { type: DataTypes.DATEONLY },
+  created_at:  { type: DataTypes.DATE,    defaultValue: DataTypes.NOW },
+  id_patient:  { type: DataTypes.INTEGER, allowNull: false },
+  id_physio:   { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: "routine" });
+
+// --- ROUTINE_EXERCISE ---
+export const RoutineExerciseModel = sequelize.define("RoutineExercise", {
+  id_routine:     { type: DataTypes.INTEGER, primaryKey: true },
+  id_exercise:    { type: DataTypes.INTEGER, primaryKey: true },
+  repetitions:    { type: DataTypes.INTEGER },
+  sets:           { type: DataTypes.INTEGER },
+  exercise_order: { type: DataTypes.INTEGER },
+  notes:          { type: DataTypes.TEXT    }
+}, { tableName: "routine_exercise" });
+
+// --- TRACKING ---
+export const TrackingModel = sequelize.define("Tracking", {
+  id_tracking: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  date:        { type: DataTypes.DATEONLY, allowNull: false },
+  completed:   { type: DataTypes.TINYINT, defaultValue: 0 },
+  pain_level:  { type: DataTypes.INTEGER },
+  feedback:    { type: DataTypes.TEXT    },
+  interrupted: { type: DataTypes.TINYINT, defaultValue: 0 },
+  notes:       { type: DataTypes.TEXT    },
+  id_routine:  { type: DataTypes.INTEGER, allowNull: false },
+  id_exercise: { type: DataTypes.INTEGER, allowNull: false },
+  id_patient:  { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: "tracking" });
+
+// --- NOTIFICATION ---
+export const NotificationModel = sequelize.define("Notification", {
+  id_notification: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  type:            { type: DataTypes.STRING  },
+  message:         { type: DataTypes.TEXT   },
+  date:            { type: DataTypes.DATE,   defaultValue: DataTypes.NOW },
+  is_read:         { type: DataTypes.TINYINT, defaultValue: 0 },
+  origin:          { type: DataTypes.ENUM("system","physio"), defaultValue: "system" },
+  id_patient:      { type: DataTypes.INTEGER, allowNull: true },
+  id_physio:       { type: DataTypes.INTEGER, allowNull: true }
+}, { tableName: "notification" });
 
 // ============================================================
-// 3. DEFINICIÓN DE ASOCIACIONES (RELACIONES)
+// 3. ASOCIACIONES
 // ============================================================
 
-/**
- * Relación: RUTINA <-> EJERCICIO (Muchos a Muchos)
- * Una rutina contiene varios ejercicios, y un ejercicio puede estar en muchas rutinas.
- */
+// User → Physio / Patient / Admin
+UserModel.hasOne(PhysiotherapistModel, { foreignKey: "id_user" });
+PhysiotherapistModel.belongsTo(UserModel, { foreignKey: "id_user" });
+
+UserModel.hasOne(PatientModel, { foreignKey: "id_user" });
+PatientModel.belongsTo(UserModel, { foreignKey: "id_user" });
+
+UserModel.hasOne(AdminModel, { foreignKey: "id_user" });
+AdminModel.belongsTo(UserModel, { foreignKey: "id_user" });
+
+// Physio → Patients
+PhysiotherapistModel.hasMany(PatientModel,     { foreignKey: "id_physio", as: "patients" });
+PatientModel.belongsTo(PhysiotherapistModel,   { foreignKey: "id_physio" });
+
+// Physio → Schedules
+PhysiotherapistModel.hasMany(ScheduleModel,    { foreignKey: "id_physio", as: "schedules" });
+ScheduleModel.belongsTo(PhysiotherapistModel,  { foreignKey: "id_physio" });
+
+// Appointments
+PhysiotherapistModel.hasMany(AppointmentModel, { foreignKey: "id_physio", as: "appointments" });
+PatientModel.hasMany(AppointmentModel,         { foreignKey: "id_patient", as: "appointments" });
+AppointmentModel.belongsTo(PatientModel,       { foreignKey: "id_patient" });
+AppointmentModel.belongsTo(PhysiotherapistModel, { foreignKey: "id_physio" });
+
+// Logbook → Appointment
+AppointmentModel.hasOne(LogbookModel,  { foreignKey: "id_appointment", as: "logbook" });
+LogbookModel.belongsTo(AppointmentModel, { foreignKey: "id_appointment" });
+
+// Routine
+PhysiotherapistModel.hasMany(RoutineModel, { foreignKey: "id_physio", as: "routines" });
+PatientModel.hasMany(RoutineModel,         { foreignKey: "id_patient", as: "routines" });
+RoutineModel.belongsTo(PatientModel,       { foreignKey: "id_patient" });
+RoutineModel.belongsTo(PhysiotherapistModel, { foreignKey: "id_physio" });
+
+// Routine ↔ Exercise (Muchos a Muchos)
 RoutineModel.belongsToMany(ExerciseModel, {
-  through: ExerciseRoutineModel,
-  foreignKey: "routine_id",
-  otherKey: "exercise_id",
-  as: "exercises", // Alias para el JSON: data.exercises
+  through: RoutineExerciseModel,
+  foreignKey: "id_routine",
+  otherKey:   "id_exercise",
+  as: "exercises"
 });
-
 ExerciseModel.belongsToMany(RoutineModel, {
-  through: ExerciseRoutineModel,
-  foreignKey: "exercise_id",
-  otherKey: "routine_id",
-  as: "routines",
+  through: RoutineExerciseModel,
+  foreignKey: "id_exercise",
+  otherKey:   "id_routine",
+  as: "routines"
 });
 
-/**
- * Relación: FISIOTERAPEUTA -> PACIENTE (Uno a Muchos)
- */
-PhysiotherapistModel.hasMany(PatientModel, { foreignKey: "physiotherapist_id", as: "patients" });
-PatientModel.belongsTo(PhysiotherapistModel, { foreignKey: "physiotherapist_id" });
+// Tracking
+RoutineModel.hasMany(TrackingModel,  { foreignKey: "id_routine",  as: "tracking" });
+ExerciseModel.hasMany(TrackingModel, { foreignKey: "id_exercise", as: "tracking" });
+PatientModel.hasMany(TrackingModel,  { foreignKey: "id_patient",  as: "tracking" });
+TrackingModel.belongsTo(RoutineModel,  { foreignKey: "id_routine" });
+TrackingModel.belongsTo(ExerciseModel, { foreignKey: "id_exercise" });
+TrackingModel.belongsTo(PatientModel,  { foreignKey: "id_patient" });
 
-/**
- * Relación: RUTINA -> TRACKING (Uno a Muchos)
- */
-RoutineModel.hasMany(TrackingModel, { foreignKey: "routine_id", as: "logs" });
-TrackingModel.belongsTo(RoutineModel, { foreignKey: "routine_id" });
+// Notifications
+PatientModel.hasMany(NotificationModel,        { foreignKey: "id_patient", as: "notifications" });
+PhysiotherapistModel.hasMany(NotificationModel, { foreignKey: "id_physio",  as: "notifications" });
+NotificationModel.belongsTo(PatientModel,       { foreignKey: "id_patient" });
+NotificationModel.belongsTo(PhysiotherapistModel, { foreignKey: "id_physio" });
