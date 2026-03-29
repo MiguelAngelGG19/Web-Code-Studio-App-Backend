@@ -8,6 +8,9 @@ export function buildRoutes(controllers: {
   trackingController:   any;
   routineController:    any;
   authController:       any;
+  appointmentController:   any;
+  logbookController:       any;
+  notificationController:  any;
 }) {
   const router = Router();
 
@@ -50,6 +53,21 @@ router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physio
   router.get("/routines/patient/:patientId",            authMiddleware, controllers.routineController.getByPatient);
   router.get("/routines/history/patient/:patientId",    authMiddleware, controllers.routineController.getHistoryByPatient);
   router.get("/routines/:id",                           authMiddleware, controllers.routineController.getById);
+
+  // Citas
+  router.post("/appointments",                       authMiddleware, controllers.appointmentController.create);
+  router.get("/appointments/patient/:patientId",     authMiddleware, controllers.appointmentController.getByPatient);
+  router.put("/appointments/:id",                    authMiddleware, controllers.appointmentController.update);
+
+  // Bitácora
+  router.post("/logbook",                            authMiddleware, controllers.logbookController.create);
+  router.get("/logbook/appointment/:appointmentId",  authMiddleware, controllers.logbookController.getByAppointment);
+
+  // Notificaciones
+  router.post("/notifications",                      authMiddleware, controllers.notificationController.create);
+  router.get("/notifications/patient/:patientId",    authMiddleware, controllers.notificationController.getByPatient);
+  router.patch("/notifications/:id/read",            authMiddleware, controllers.notificationController.markAsRead);
+
 
   return router;
 }

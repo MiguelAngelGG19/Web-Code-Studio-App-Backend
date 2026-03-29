@@ -20,6 +20,11 @@ import { ApprovePhysiotherapistUseCase } from "./application/use-cases/ApprovePh
 import { ListPendingPhysiotherapistsUseCase } from "./application/use-cases/ListPendingPhysiotherapists.uc";
 import { LoginPatientByEmailUseCase } from "./application/use-cases/LoginPatientByEmail.uc";
 
+// Repositorios nuevos
+import { SequelizeAppointmentRepository } from "./infrastructure/persistence/repositories/SequelizeAppointmentRepository";
+import { SequelizeLogbookRepository } from "./infrastructure/persistence/repositories/SequelizeLogbookRepository";
+import { SequelizeNotificationRepository } from "./infrastructure/persistence/repositories/SequelizeNotificationRepository";
+
 
 
 
@@ -42,7 +47,20 @@ import { ListPatientsUseCase } from "./application/use-cases/ListPatients.uc";
 import { UpdatePatientUseCase } from "./application/use-cases/UpdatePatient.uc";
 import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc";
 
+// Use Cases — Citas
+import { CreateAppointmentUseCase } from "./application/use-cases/CreateAppointment.uc";
+import { GetAppointmentsByPatientUseCase } from "./application/use-cases/GetAppointmentsByPatient.uc";
+import { UpdateAppointmentUseCase } from "./application/use-cases/UpdateAppointment.uc";
 
+// Use Cases — Bitácora
+import { CreateLogbookUseCase } from "./application/use-cases/CreateLogbook.uc";
+import { GetLogbookByAppointmentUseCase } from "./application/use-cases/GetLogbookByAppointment.uc";
+
+
+// Use Cases — Notificaciones
+import { CreateNotificationUseCase } from "./application/use-cases/CreateNotification.uc";
+import { GetNotificationsByPatientUseCase } from "./application/use-cases/GetNotificationsByPatient.uc";
+import { MarkNotificationAsReadUseCase } from "./application/use-cases/MarkNotificationAsRead.uc";
 // --- Fisioterapeutas ---
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
 import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
@@ -67,6 +85,11 @@ import { PhysiotherapistController } from "./infrastructure/http/controllers/phy
 import { ExerciseController } from "./infrastructure/http/controllers/exercise.controller";
 import { TrackingController } from "./infrastructure/http/controllers/tracking.controller";
 import { RoutineController } from "./infrastructure/http/controllers/routine.controller";
+
+// Controladores nuevos
+import { AppointmentController } from "./infrastructure/http/controllers/appointment.controller";
+import { LogbookController } from "./infrastructure/http/controllers/logbook.controller";
+import { NotificationController } from "./infrastructure/http/controllers/notification.controller";
 
 // Cargar variables de entorno (.env)
 dotenv.config();
@@ -93,7 +116,9 @@ async function bootstrap() {
     const trackingRepo = new SequelizeTrackingRepository();
     const routineRepo = new SequelizeRoutineRepository();
     const authRepo = new SequelizeAuthRepository();
-
+const appointmentRepo   = new SequelizeAppointmentRepository();
+const logbookRepo       = new SequelizeLogbookRepository();
+const notificationRepo  = new SequelizeNotificationRepository();
 
     // ============================================================
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
@@ -132,6 +157,20 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
      const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
      const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
      const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
+
+     // Citas
+const createAppointment     = new CreateAppointmentUseCase(appointmentRepo);
+const getAppointmentsByPatient = new GetAppointmentsByPatientUseCase(appointmentRepo);
+const updateAppointment     = new UpdateAppointmentUseCase(appointmentRepo);
+
+// Bitácora
+const createLogbook         = new CreateLogbookUseCase(logbookRepo);
+const getLogbookByAppointment = new GetLogbookByAppointmentUseCase(logbookRepo);
+
+// Notificaciones
+const createNotification    = new CreateNotificationUseCase(notificationRepo);
+const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
+const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
 
 
     // ============================================================
@@ -176,6 +215,23 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
 );
 
 
+const appointmentController = new AppointmentController(
+  createAppointment,
+  getAppointmentsByPatient,
+  updateAppointment
+);
+
+const logbookController = new LogbookController(
+  createLogbook,
+  getLogbookByAppointment
+);
+
+const notificationController = new NotificationController(
+  createNotification,
+  getNotificationsByPatient,
+  markNotificationAsRead
+);
+
 
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
@@ -194,7 +250,10 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
   exerciseController,
   trackingController,
   routineController,
-  authController,   // ← agregar esta línea
+  authController,
+  appointmentController,   // ← nuevo
+  logbookController,       // ← nuevo
+  notificationController,  // ← nuevo
 }));
 
 
