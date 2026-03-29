@@ -14,7 +14,7 @@ export class LoginPhysiotherapistUseCase {
     }
 
     // 2. Verificar que la cuenta esté activa
-    if (fisio.status !== "activo") {
+   if (fisio.role !== "physio") {
       throw new Error("Tu cuenta aún no está activa. Contacta al administrador.");
     }
 
