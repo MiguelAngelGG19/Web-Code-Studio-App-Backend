@@ -67,7 +67,7 @@ router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physio
   router.post("/notifications",                      authMiddleware, controllers.notificationController.create);
   router.get("/notifications/patient/:patientId",    authMiddleware, controllers.notificationController.getByPatient);
   router.patch("/notifications/:id/read",            authMiddleware, controllers.notificationController.markAsRead);
-}
+
 
   return router;
 }
