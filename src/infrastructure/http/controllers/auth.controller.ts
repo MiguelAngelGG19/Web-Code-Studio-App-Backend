@@ -15,6 +15,28 @@ export class AuthController {
       const result = await this.registerUseCase.execute(req.body);
       res.status(201).json(result);
     } catch (error: any) {
+      // 1. Detectamos si el error es por un duplicado en la base de datos (Regla UNIQUE)
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        // Extraemos qué columna exacta causó el conflicto
+        const field = error.errors[0]?.path; 
+        
+        let friendlyMessage = "Un dato proporcionado ya se encuentra registrado.";
+        
+        // Traducimos el campo de la base de datos a un mensaje humano
+        if (field === 'curp') {
+          friendlyMessage = "La CURP ingresada ya se encuentra registrada en el sistema.";
+        } else if (field === 'professional_license' || field === 'professionalLicense') {
+          friendlyMessage = "La Cédula Profesional ingresada ya está vinculada a otra cuenta.";
+        } else if (field === 'email' || field === 'users.email') {
+          friendlyMessage = "El correo electrónico ya está en uso. Por favor, inicia sesión.";
+        }
+
+        // Retornamos status 409 (Conflict) con nuestro mensaje personalizado
+        res.status(409).json({ message: friendlyMessage });
+        return;
+      }
+
+      // 2. Si es cualquier otro error (ej. faltan datos), devolvemos el error crudo 400
       res.status(400).json({ message: error.message });
     }
   };

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-  user?: { id: number; role: string };
+  user?: { id: number; role: string; status?: string };
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
@@ -16,10 +16,15 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: number; role: string };
+    // 🔥 EL ARREGLO ESTÁ AQUÍ: Le damos la misma llave de respaldo que usa el Login
+    const secretKey = process.env.JWT_SECRET || "secret_dev";
+    
+    const decoded = jwt.verify(token, secretKey) as { id: number; role: string };
     (req as AuthRequest).user = decoded;
     next();
-  } catch {
+  } catch (error) {
+    // 🕵️‍♂️ Extra: Imprimimos el error real en la consola del backend por si acaso
+    console.error("Error en authMiddleware:", error);
     res.status(401).json({ success: false, message: "Token inválido o expirado." });
   }
 };

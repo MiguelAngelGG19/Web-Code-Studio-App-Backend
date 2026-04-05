@@ -1,5 +1,7 @@
 import { IAuthRepository } from "../../../application/ports/IAuthRepository";
-import { PhysiotherapistModel, UserModel } from "../sequelize/client";
+// IMPORTANTE: Añadí 'sequelize' a la importación. Si tu conexión no se exporta desde 'client',
+// asegúrate de importarla desde tu archivo de configuración de base de datos (ej. database.ts)
+import { PhysiotherapistModel, UserModel, sequelize } from "../sequelize/client";
 import bcrypt from "bcrypt";
 
 export class SequelizeAuthRepository implements IAuthRepository {
@@ -21,28 +23,44 @@ export class SequelizeAuthRepository implements IAuthRepository {
     curp: string;
   }): Promise<any> {
 
-    // 1. Crear usuario base
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = await UserModel.create({
-      email:    data.email,
-      password: hashedPassword,
-      role:     "physio",
-    });
+    // 1. Iniciamos la transacción
+    const t = await sequelize.transaction();
 
-    const userId = (user.get({ plain: true }) as any).id_user;
+    try {
+      // 2. Crear usuario base (VINCULADO A LA TRANSACCIÓN)
+      //const hashedPassword = await bcrypt.hash(data.password, 10);
+      const user = await UserModel.create({
+        email:    data.email,
+        password: data.password, // <-- Guardamos la contraseña sin encriptar para que bcrypt pueda compararla después
+        role:     "physio",
+      }, { transaction: t }); // <-- Le pasamos la transacción aquí
 
-    // 2. Crear perfil de fisioterapeuta
-    const physio = await PhysiotherapistModel.create({
-      first_name:           data.firstName,
-      last_name_paternal:   data.lastNameP,
-      last_name_maternal:   data.lastNameM,
-      birth_date:           data.birthDate,
-      professional_license: data.professionalLicense,
-      curp:                 data.curp,
-      status:               "pending_profile",
-      id_user:              userId,
-    });
+      const userId = (user.get({ plain: true }) as any).id_user;
 
-    return physio.get({ plain: true });
+      // 3. Crear perfil de fisioterapeuta (VINCULADO A LA TRANSACCIÓN)
+      const physio = await PhysiotherapistModel.create({
+        first_name:           data.firstName,
+        last_name_paternal:   data.lastNameP,
+        last_name_maternal:   data.lastNameM,
+        birth_date:           data.birthDate,
+        professional_license: data.professionalLicense,
+        curp:                 data.curp,
+        status:               "pending_profile",
+        id_user:              userId,
+      }, { transaction: t }); // <-- Y le pasamos la transacción aquí
+
+      // 4. Si TODO salió perfecto, confirmamos los cambios en MySQL
+      await t.commit();
+
+      return physio.get({ plain: true });
+
+    } catch (error) {
+      // 5. ROLLBACK MÁGICO: Si la CURP o Cédula ya existen (falla el paso 3),
+      // esto deshace el paso 2 automáticamente y borra al usuario fantasma.
+      await t.rollback();
+      
+      // 6. Lanzamos el error hacia arriba para que el Controller lo atrape y se lo mande a Angular
+      throw error;
+    }
   }
 }

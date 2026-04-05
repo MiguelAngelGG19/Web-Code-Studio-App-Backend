@@ -51,6 +51,7 @@ import { GetPatientByIdUseCase } from "./application/use-cases/GetPatientById.uc
 import { CreateAppointmentUseCase } from "./application/use-cases/CreateAppointment.uc";
 import { GetAppointmentsByPatientUseCase } from "./application/use-cases/GetAppointmentsByPatient.uc";
 import { UpdateAppointmentUseCase } from "./application/use-cases/UpdateAppointment.uc";
+import { GetAppointmentsByPhysioUseCase } from './application/use-cases/GetAppointmentsByPhysio.uc';
 
 // Use Cases — Bitácora
 import { CreateLogbookUseCase } from "./application/use-cases/CreateLogbook.uc";
@@ -214,11 +215,12 @@ const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRep
   loginPatientEmail  // ← antes era loginPatientGoogle
 );
 
-
+const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
 const appointmentController = new AppointmentController(
   createAppointment,
   getAppointmentsByPatient,
-  updateAppointment
+  updateAppointment,
+  getAppointmentsByPhysioUseCase
 );
 
 const logbookController = new LogbookController(

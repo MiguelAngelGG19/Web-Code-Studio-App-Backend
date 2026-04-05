@@ -10,9 +10,33 @@ export class SequelizePatientRepository implements PatientRepository {
     return created.toJSON() as Patient;
   }
 
-  async findAll(limit: number, offset: number): Promise<{ rows: Patient[]; count: number }> {
-    const result = await PatientModel.findAndCountAll({ limit, offset });
+ async findAll(limit: number, offset: number): Promise<{ rows: Patient[]; count: number }> {
+    const result = await PatientModel.findAndCountAll({ 
+      limit, 
+      offset,
+      // 🪄 LA MAGIA DEL JOIN: Traemos el correo de la tabla Users
+      include: [
+        { 
+          model: UserModel, 
+          attributes: ['email'] // Solo traemos el email para no saturar la red
+        }
+      ]
+    });
+    
     return { rows: result.rows.map(r => r.toJSON() as Patient), count: result.count };
+  }
+
+  async findById(id: number): Promise<Patient | null> {
+    const patient = await PatientModel.findByPk(id, {
+      // 🪄 TAMBIÉN LO PONEMOS AQUÍ para cuando veas el detalle de 1 solo paciente
+      include: [
+        { 
+          model: UserModel, 
+          attributes: ['email'] 
+        }
+      ]
+    });
+    return patient ? patient.toJSON() as Patient : null;
   }
 
   async update(id: number, data: UpdatePatientDTO): Promise<Patient | null> {
@@ -22,10 +46,6 @@ export class SequelizePatientRepository implements PatientRepository {
     return updated?.toJSON() as Patient;
   }
 
-  async findById(id: number): Promise<Patient | null> {
-    const patient = await PatientModel.findByPk(id);
-    return patient ? patient.toJSON() as Patient : null;
-  }
 
   async findByEmail(email: string): Promise<any | null> {
     const user = await UserModel.findOne({ where: { email } });
