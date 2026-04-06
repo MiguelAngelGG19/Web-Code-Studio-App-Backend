@@ -19,6 +19,7 @@
     
     /* Configuración de Rutas */
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]

@@ -104,10 +104,15 @@ export function buildRoutes(controllers: {
   router.post("/tracking", authMiddleware, requireApproval, controllers.trackingController.create);
 
   // Rutinas
-  router.post("/routines",                              authMiddleware, requireApproval, controllers.routineController.create);
-  router.get("/routines/patient/:patientId",            authMiddleware, requireApproval, controllers.routineController.getByPatient);
-  router.get("/routines/history/patient/:patientId",    authMiddleware, requireApproval, controllers.routineController.getHistoryByPatient);
-  router.get("/routines/:id",                           authMiddleware, requireApproval, controllers.routineController.getById);
+
+  router.post("/routines",                              authMiddleware, controllers.routineController.create);
+  router.get("/routines/templates",                     authMiddleware, controllers.routineController.listTemplates);
+  router.get("/routines/templates/:id",                 authMiddleware, controllers.routineController.getTemplateById);
+  router.post("/routines/:id/template",                 authMiddleware, controllers.routineController.saveAsTemplate);
+  router.get("/routines/patient/:patientId",            authMiddleware, controllers.routineController.getByPatient);
+  router.get("/routines/history/patient/:patientId",    authMiddleware, controllers.routineController.getHistoryByPatient);
+  router.get("/routines/:id",                           authMiddleware, controllers.routineController.getById);
+  router.put("/routines/:id",                           authMiddleware, controllers.routineController.update);
 
   // Citas
   router.post("/appointments",                       authMiddleware, requireApproval, controllers.appointmentController.create);

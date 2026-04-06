@@ -6,3 +6,10 @@ export type CreateRoutineDTO = {
   patientId: number;
   exerciseIds: number[]; // Arreglo con los IDs de los ejercicios seleccionados
 };
+
+export type CreateRoutineTemplateDTO = {
+  routineId: number;
+  physiotherapistId: number;
+  name?: string;
+  tag?: string;
+};

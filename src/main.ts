@@ -29,7 +29,11 @@ import { SequelizeNotificationRepository } from "./infrastructure/persistence/re
 
 
 // 1. INFRAESTRUCTURA CORE
-import { sequelize } from "./infrastructure/persistence/sequelize/client";
+import {
+  sequelize,
+  RoutineTemplateModel,
+  RoutineTemplateExerciseModel,
+} from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
 import { errorHandler } from "./infrastructure/http/middlewares/error.middleware";
 
@@ -79,6 +83,10 @@ import { CreateRoutineUseCase } from "./application/use-cases/CreateRoutine.uc";
 import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRoutine.uc";
 import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
 import { GetPatientRoutineHistoryUseCase } from "./application/use-cases/GetPatientRoutineHistory.uc";
+import { AddExercisesToRoutineUseCase } from "./application/use-cases/AddExercisesToRoutine.uc";
+import { CreateRoutineTemplateUseCase } from "./application/use-cases/CreateRoutineTemplate.uc";
+import { ListRoutineTemplatesUseCase } from "./application/use-cases/ListRoutineTemplates.uc";
+import { GetRoutineTemplateByIdUseCase } from "./application/use-cases/GetRoutineTemplateById.uc";
 
 // 4. CONTROLADORES (HTTP INTERFACE)
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
@@ -107,6 +115,8 @@ async function bootstrap() {
     // ============================================================
     await sequelize.authenticate();
     console.log("✅ Conexión a MySQL (Sequelize) establecida con éxito.");
+    await RoutineTemplateModel.sync();
+    await RoutineTemplateExerciseModel.sync();
 
     // ============================================================
     // FASE 2: INSTANCIACIÓN DE REPOSITORIOS (INFRAESTRUCTURA)
@@ -153,6 +163,9 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
     const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
     const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
+    const createRoutineTemplate = new CreateRoutineTemplateUseCase(routineRepo);
+    const listRoutineTemplates = new ListRoutineTemplatesUseCase(routineRepo);
+    const getRoutineTemplateById = new GetRoutineTemplateByIdUseCase(routineRepo);
 
     // Casos de Uso: Auth
      const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
@@ -202,11 +215,17 @@ const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRep
       registerPain
     );
 
+    const addExercisesToRoutine = new AddExercisesToRoutineUseCase(routineRepo);
+
     const routineController = new RoutineController(
-      createRoutine, 
-      getPatientRoutine, 
-      getRoutineById, 
-      getPatientRoutineHistory
+      createRoutine,
+      getPatientRoutine,
+      getRoutineById,
+      getPatientRoutineHistory,
+      addExercisesToRoutine,
+      createRoutineTemplate,
+      listRoutineTemplates,
+      getRoutineTemplateById,
     );
 
     const authController = new AuthController(

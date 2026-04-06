@@ -141,6 +141,26 @@ export const RoutineExerciseModel = sequelize.define("RoutineExercise", {
   notes:          { type: DataTypes.TEXT    }
 }, { tableName: "routine_exercise" });
 
+// --- ROUTINE_TEMPLATE ---
+export const RoutineTemplateModel = sequelize.define("RoutineTemplate", {
+  id_template:      { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name:             { type: DataTypes.STRING, allowNull: false },
+  tag:              { type: DataTypes.STRING, allowNull: true },
+  created_at:       { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  id_physio:        { type: DataTypes.INTEGER, allowNull: false },
+  source_routine_id:{ type: DataTypes.INTEGER, allowNull: true }
+}, { tableName: "routine_template" });
+
+// --- ROUTINE_TEMPLATE_EXERCISE ---
+export const RoutineTemplateExerciseModel = sequelize.define("RoutineTemplateExercise", {
+  id_template:    { type: DataTypes.INTEGER, primaryKey: true },
+  id_exercise:    { type: DataTypes.INTEGER, primaryKey: true },
+  repetitions:    { type: DataTypes.INTEGER },
+  sets:           { type: DataTypes.INTEGER },
+  exercise_order: { type: DataTypes.INTEGER },
+  notes:          { type: DataTypes.TEXT }
+}, { tableName: "routine_template_exercise" });
+
 // --- TRACKING ---
 export const TrackingModel = sequelize.define("Tracking", {
   id_tracking: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -217,6 +237,23 @@ ExerciseModel.belongsToMany(RoutineModel, {
   foreignKey: "id_exercise",
   otherKey:   "id_routine",
   as: "routines"
+});
+
+// Plantillas de rutina
+PhysiotherapistModel.hasMany(RoutineTemplateModel, { foreignKey: "id_physio", as: "routineTemplates" });
+RoutineTemplateModel.belongsTo(PhysiotherapistModel, { foreignKey: "id_physio" });
+
+RoutineTemplateModel.belongsToMany(ExerciseModel, {
+  through: RoutineTemplateExerciseModel,
+  foreignKey: "id_template",
+  otherKey: "id_exercise",
+  as: "exercises"
+});
+ExerciseModel.belongsToMany(RoutineTemplateModel, {
+  through: RoutineTemplateExerciseModel,
+  foreignKey: "id_exercise",
+  otherKey: "id_template",
+  as: "routineTemplates"
 });
 
 // Tracking
