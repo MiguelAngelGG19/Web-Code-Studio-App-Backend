@@ -1,25 +1,21 @@
 import { RoutineRepository } from "../ports/out/RoutineRepository";
 import { RoutineExerciseItemDTO } from "../dtos/routine.dto";
 
-/**
- * Caso de uso: Añade ejercicios a una rutina ya existente.
- * Endpoint destino: PUT /api/routines/:id
- */
-export class AddExercisesToRoutineUseCase {
+export class AddExercisesToTemplateUseCase {
   constructor(private readonly routineRepo: RoutineRepository) {}
 
-  async execute(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[]): Promise<any> {
+  async execute(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string): Promise<any> {
     const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
     const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
 
     if (!hasIds && !hasItems) {
-      throw new Error("Debes proporcionar al menos un ID de ejercicio.");
+      throw new Error("Debes proporcionar al menos un ejercicio para la plantilla.");
     }
 
     const ids = hasIds
       ? exerciseIds
       : (exerciseItems || []).map(item => item.exerciseId);
 
-    return this.routineRepo.addExercises(routineId, ids, exerciseItems);
+    return this.routineRepo.addExercisesToTemplate(templateId, ids, exerciseItems, name, tag);
   }
 }

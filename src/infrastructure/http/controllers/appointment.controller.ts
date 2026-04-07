@@ -3,6 +3,7 @@ import { CreateAppointmentUseCase } from "../../../application/use-cases/CreateA
 import { GetAppointmentsByPatientUseCase } from "../../../application/use-cases/GetAppointmentsByPatient.uc";
 import { UpdateAppointmentUseCase } from "../../../application/use-cases/UpdateAppointment.uc";
 import { GetAppointmentsByPhysioUseCase } from "../../../application/use-cases/GetAppointmentsByPhysio.uc";
+import { PhysiotherapistModel } from "../../persistence/sequelize/client";
 
 export class AppointmentController {
   constructor(
@@ -17,13 +18,32 @@ export class AppointmentController {
     this.getMyPhysioAppointments = this.getMyPhysioAppointments.bind(this);
   }
 
+  private async resolvePhysioId(req: any): Promise<number | null> {
+    const tokenPhysioId = Number(req.user?.id_physio);
+    if (tokenPhysioId && !Number.isNaN(tokenPhysioId)) {
+      return tokenPhysioId;
+    }
+
+    const tokenUserId = Number(req.user?.id || req.user?.id_user);
+    if (!tokenUserId || Number.isNaN(tokenUserId)) {
+      return null;
+    }
+
+    const physio: any = await PhysiotherapistModel.findOne({ where: { id_user: tokenUserId } });
+    if (!physio) {
+      return null;
+    }
+
+    return Number(physio.id_physio || physio.getDataValue("id_physio"));
+  }
+
   async create(req: any, res: Response): Promise<void> {
     try {
-      // 1. Extraemos el ID del fisio directamente del token de seguridad
-      const physioId = req.user?.id || req.user?.id_user;
+      // 1. Resolvemos el ID real del fisioterapeuta (tabla physiotherapist)
+      const physioId = await this.resolvePhysioId(req);
 
       if (!physioId) {
-        res.status(401).json({ message: "No autorizado. No se detectó la sesión del fisioterapeuta." });
+        res.status(401).json({ message: "No autorizado. No se pudo resolver el fisioterapeuta autenticado." });
         return;
       }
 
@@ -62,9 +82,12 @@ export class AppointmentController {
   // AGREGAR ESTA FUNCIÓN AL CONTROLADOR
   async getMyPhysioAppointments(req: any, res: Response): Promise<void> {
     try {
-      const idPhysio = req.user?.id; // Saca el ID del token
-      // Necesitarán crear un GetAppointmentsByPhysioUseCase que llame a findByPhysio en el repo
-      // y conectarlo a una ruta GET /api/appointments
+      const idPhysio = await this.resolvePhysioId(req);
+      if (!idPhysio) {
+        res.status(401).json({ message: "No autorizado. No se pudo resolver el fisioterapeuta autenticado." });
+        return;
+      }
+
       const result = await this.getAppointmentsByPhysio.execute(idPhysio);
       res.status(200).json(result);
     } catch (err: any) {

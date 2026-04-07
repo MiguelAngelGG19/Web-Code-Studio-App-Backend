@@ -1,4 +1,5 @@
-import { CreateRoutineDTO, CreateRoutineTemplateDTO } from "../../dtos/routine.dto";
+import { CreateRoutineDTO, CreateRoutineTemplateDTO, RoutineExerciseItemDTO } from "../../dtos/routine.dto";
+import { CreateRoutineTemplateDirectDTO } from "../../use-cases/CreateRoutineTemplateDirect.uc";
 
 export interface RoutineRepository {
   // Guardará la rutina y también sus ejercicios en la tabla intermedia
@@ -10,10 +11,16 @@ export interface RoutineRepository {
   // NUEVO: Buscar el historial completo de rutinas de un paciente
   findAllByPatientId(patientId: number): Promise<any[]>;
   // Añade ejercicios a una rutina existente (sin duplicar)
-  addExercises(routineId: number, exerciseIds: number[]): Promise<any>;
+  addExercises(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[]): Promise<any>;
 
   // Plantillas: guardar rutina existente como plantilla reusable
   createTemplateFromRoutine(data: CreateRoutineTemplateDTO): Promise<any>;
+
+  // Plantillas: crear plantilla directa (sin paciente/rutina origen)
+  createTemplateDirect(data: CreateRoutineTemplateDirectDTO): Promise<any>;
+
+  // Plantillas: agregar ejercicios a una plantilla ya existente
+  addExercisesToTemplate(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string): Promise<any>;
 
   // Plantillas: listado por fisioterapeuta (opcionalmente filtrado por etiqueta)
   findTemplatesByPhysio(physiotherapistId: number, tag?: string): Promise<any[]>;

@@ -54,7 +54,25 @@ export const RoutineSchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "El formato debe ser YYYY-MM-DD"),
   physiotherapistId: z.number().int().positive(),
   patientId: z.number().int().positive(),
-  exerciseIds: z.array(z.number().int().positive()).nonempty("Debe seleccionar al menos un ejercicio")
+  exerciseIds: z.array(z.number().int().positive()).optional(),
+  exerciseItems: z.array(z.object({
+    exerciseId: z.number().int().positive("ID de ejercicio inválido"),
+    repetitions: z.number().int().positive().optional(),
+    sets: z.number().int().positive().optional(),
+    exerciseOrder: z.number().int().positive().optional(),
+    notes: z.string().optional(),
+  })).optional(),
+}).superRefine((data, ctx) => {
+  const hasIds = Array.isArray(data.exerciseIds) && data.exerciseIds.length > 0;
+  const hasItems = Array.isArray(data.exerciseItems) && data.exerciseItems.length > 0;
+
+  if (!hasIds && !hasItems) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Debe seleccionar al menos un ejercicio",
+      path: ["exerciseIds"],
+    });
+  }
 });
 
 // NUEVO: Esquema para edición (todos los campos opcionales)

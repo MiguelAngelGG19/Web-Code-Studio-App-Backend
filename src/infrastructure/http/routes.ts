@@ -106,6 +106,8 @@ export function buildRoutes(controllers: {
   // Rutinas
 
   router.post("/routines",                              authMiddleware, controllers.routineController.create);
+  router.post("/routines/templates",                    authMiddleware, controllers.routineController.createTemplate);
+  router.put("/routines/templates/:id",                 authMiddleware, controllers.routineController.updateTemplate);
   router.get("/routines/templates",                     authMiddleware, controllers.routineController.listTemplates);
   router.get("/routines/templates/:id",                 authMiddleware, controllers.routineController.getTemplateById);
   router.post("/routines/:id/template",                 authMiddleware, controllers.routineController.saveAsTemplate);

@@ -45,11 +45,13 @@ export class LoginPhysiotherapistUseCase {
     // (Asegúrate de importar PhysiotherapistModel en la parte de arriba del archivo usando Ctrl + .)
     const datosFisio: any = await PhysiotherapistModel.findOne({ where: { id_user: fisio.id_user } });
     const estatusReal = datosFisio ? datosFisio.status : 'pending_profile';
+    const idPhysioReal = datosFisio ? Number(datosFisio.id_physio || datosFisio.getDataValue('id_physio')) : undefined;
 
     // 2. Generar JWT
     const token = jwt.sign(
       {
         id: fisio.id_user, 
+        id_physio: idPhysioReal,
         email: fisio.email,
         role: fisio.role,
         status: estatusReal // <--- Ahora sí, metemos el estatus real que encontramos
@@ -62,6 +64,7 @@ export class LoginPhysiotherapistUseCase {
       token,
       fisio: {
         id: fisio.id_user, 
+        id_physio: idPhysioReal,
         email: fisio.email,
         role: fisio.role,
         status: estatusReal 

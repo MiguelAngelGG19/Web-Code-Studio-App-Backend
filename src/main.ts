@@ -84,7 +84,9 @@ import { GetPatientRoutineUseCase } from "./application/use-cases/GetPatientRout
 import { GetRoutineByIdUseCase } from "./application/use-cases/GetRoutineById.uc";
 import { GetPatientRoutineHistoryUseCase } from "./application/use-cases/GetPatientRoutineHistory.uc";
 import { AddExercisesToRoutineUseCase } from "./application/use-cases/AddExercisesToRoutine.uc";
+import { AddExercisesToTemplateUseCase } from "./application/use-cases/AddExercisesToTemplate.uc";
 import { CreateRoutineTemplateUseCase } from "./application/use-cases/CreateRoutineTemplate.uc";
+import { CreateRoutineTemplateDirectUseCase } from "./application/use-cases/CreateRoutineTemplateDirect.uc";
 import { ListRoutineTemplatesUseCase } from "./application/use-cases/ListRoutineTemplates.uc";
 import { GetRoutineTemplateByIdUseCase } from "./application/use-cases/GetRoutineTemplateById.uc";
 
@@ -164,8 +166,10 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     const getRoutineById = new GetRoutineByIdUseCase(routineRepo);
     const getPatientRoutineHistory = new GetPatientRoutineHistoryUseCase(routineRepo);
     const createRoutineTemplate = new CreateRoutineTemplateUseCase(routineRepo);
+    const createRoutineTemplateDirect = new CreateRoutineTemplateDirectUseCase(routineRepo);
     const listRoutineTemplates = new ListRoutineTemplatesUseCase(routineRepo);
     const getRoutineTemplateById = new GetRoutineTemplateByIdUseCase(routineRepo);
+    const addExercisesToTemplate = new AddExercisesToTemplateUseCase(routineRepo);
 
     // Casos de Uso: Auth
      const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
@@ -223,7 +227,9 @@ const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRep
       getRoutineById,
       getPatientRoutineHistory,
       addExercisesToRoutine,
+      addExercisesToTemplate,
       createRoutineTemplate,
+      createRoutineTemplateDirect,
       listRoutineTemplates,
       getRoutineTemplateById,
     );
