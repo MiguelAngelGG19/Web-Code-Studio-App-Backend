@@ -40,11 +40,15 @@ export class LoginPhysiotherapistUseCase {
     }
 
     console.log("✅ ÉXITO: Generando Token JWT...");
-    // 4. Generar JWT
-    // 🔥 1. VAMOS A BUSCAR EL ESTATUS REAL A LA OTRA TABLA
-    // (Asegúrate de importar PhysiotherapistModel en la parte de arriba del archivo usando Ctrl + .)
+    
+    // 1. VAMOS A BUSCAR EL ESTATUS Y LOS NOMBRES A LA OTRA TABLA
     const datosFisio: any = await PhysiotherapistModel.findOne({ where: { id_user: fisio.id_user } });
+    
     const estatusReal = datosFisio ? datosFisio.status : 'pending_profile';
+    
+    // 🪄 EXTRAEMOS LOS NOMBRES DE LA BASE DE DATOS
+    const firstName = datosFisio ? datosFisio.first_name : '';
+    const lastNameP = datosFisio ? datosFisio.last_name_paternal : '';
 
     // 2. Generar JWT
     const token = jwt.sign(
@@ -52,7 +56,10 @@ export class LoginPhysiotherapistUseCase {
         id: fisio.id_user, 
         email: fisio.email,
         role: fisio.role,
-        status: estatusReal // <--- Ahora sí, metemos el estatus real que encontramos
+        status: estatusReal,
+        // 🪄 ¡LOS AGREGAMOS AL TOKEN AQUÍ!
+        first_name: firstName,
+        last_name_paternal: lastNameP
       },
       process.env.JWT_SECRET || "secret_dev",
       { expiresIn: "8h" }
@@ -64,7 +71,9 @@ export class LoginPhysiotherapistUseCase {
         id: fisio.id_user, 
         email: fisio.email,
         role: fisio.role,
-        status: estatusReal 
+        status: estatusReal,
+        first_name: firstName,     // También los devolvemos en el body por si acaso
+        last_name_paternal: lastNameP
       },
     };
   }

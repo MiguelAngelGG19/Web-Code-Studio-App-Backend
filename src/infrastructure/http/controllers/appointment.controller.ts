@@ -3,6 +3,8 @@ import { CreateAppointmentUseCase } from "../../../application/use-cases/CreateA
 import { GetAppointmentsByPatientUseCase } from "../../../application/use-cases/GetAppointmentsByPatient.uc";
 import { UpdateAppointmentUseCase } from "../../../application/use-cases/UpdateAppointment.uc";
 import { GetAppointmentsByPhysioUseCase } from "../../../application/use-cases/GetAppointmentsByPhysio.uc";
+// 🪄 IMPORTAMOS EL MODELO DEL FISIO
+import { PhysiotherapistModel } from "../../../infrastructure/persistence/sequelize/client";
 
 export class AppointmentController {
   constructor(
@@ -19,21 +21,30 @@ export class AppointmentController {
 
   async create(req: any, res: Response): Promise<void> {
     try {
-      // 1. Extraemos el ID del fisio directamente del token de seguridad
-      const physioId = req.user?.id || req.user?.id_user;
+      // 1. Extraemos el ID del usuario del token
+      const userIdFromToken = req.user?.id || req.user?.id_user;
 
-      if (!physioId) {
-        res.status(401).json({ message: "No autorizado. No se detectó la sesión del fisioterapeuta." });
+      if (!userIdFromToken) {
+        res.status(401).json({ message: "No autorizado. No se detectó la sesión." });
         return;
       }
 
-      // 2. Armamos el paquete combinando lo que manda Angular + el ID seguro
+      // 🪄 2. TRADUCTOR DE IDs: Obtenemos el verdadero id_physio
+      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
+      if (!physioRecord) {
+        res.status(403).json({ message: "No tienes un perfil de fisioterapeuta válido para agendar." });
+        return;
+      }
+
+      const idPhysioReal = (physioRecord as any).id_physio;
+
+      // 3. Armamos el paquete combinando lo que manda Angular + el ID seguro
       const appointmentData = {
         ...req.body,
-        id_physio: physioId
+        id_physio: idPhysioReal
       };
 
-      // 3. Ejecutamos el caso de uso que acabamos de corregir
+      // 4. Ejecutamos el caso de uso
       const result = await this.createAppointment.execute(appointmentData);
       res.status(201).json(result);
       
@@ -59,17 +70,29 @@ export class AppointmentController {
       res.status(400).json({ message: err.message });
     }
   }
-  // AGREGAR ESTA FUNCIÓN AL CONTROLADOR
+
   async getMyPhysioAppointments(req: any, res: Response): Promise<void> {
     try {
-      const idPhysio = req.user?.id; // Saca el ID del token
-      // Necesitarán crear un GetAppointmentsByPhysioUseCase que llame a findByPhysio en el repo
-      // y conectarlo a una ruta GET /api/appointments
-      const result = await this.getAppointmentsByPhysio.execute(idPhysio);
+      const userIdFromToken = req.user?.id || req.user?.id_user;
+      
+      if (!userIdFromToken) {
+        res.status(401).json({ message: "No autorizado." });
+        return;
+      }
+
+      // 🪄 TRADUCTOR DE IDs
+      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
+      if (!physioRecord) {
+        res.status(403).json({ message: "Perfil de fisioterapeuta no encontrado." });
+        return;
+      }
+
+      const idPhysioReal = (physioRecord as any).id_physio;
+
+      const result = await this.getAppointmentsByPhysio.execute(idPhysioReal);
       res.status(200).json(result);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
   }
 }
-

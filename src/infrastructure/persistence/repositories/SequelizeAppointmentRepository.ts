@@ -39,9 +39,24 @@ export class SequelizeAppointmentRepository implements AppointmentRepository {
 }
 
   async update(id: number, data: any): Promise<any | null> {
-    const [affected] = await AppointmentModel.update(data, { where: { id_appointment: id } });
-    if (affected === 0) return null;
+    // 1. Verificamos si la cita existe
+    const citaExistente = await AppointmentModel.findByPk(id);
+    if (!citaExistente) return null; 
+
+    // 2. Ejecutamos el update y capturamos cuántas filas se afectaron realmente
+    const [affected] = await AppointmentModel.update(data, { 
+      where: { id_appointment: id } 
+    });
+
+    // 3. Traemos la cita de nuevo
     const updated = await AppointmentModel.findByPk(id);
-    return updated?.toJSON();
+    const resultado = updated?.toJSON();
+
+    // 🪄 MAGIA: Le agregamos una bandera al resultado para avisarle al Frontend
+    if (resultado) {
+      resultado.sin_cambios = (affected === 0); 
+    }
+
+    return resultado;
   }
 }

@@ -7,22 +7,10 @@
  */
 
 import { Request, Response } from "express";
-import { PatientSchema, UpdatePatientSchema } from "../../../application/dtos/schemas";
-import { PatientModel, UserModel } from "../../../infrastructure/persistence/sequelize/client"; // Ajusta la ruta si es necesario
+import { PatientModel, UserModel, PhysiotherapistModel } from "../../../infrastructure/persistence/sequelize/client"; 
 
-/**
- * Clase controladora para la entidad Paciente.
- * Centraliza la lógica de comunicación entre el protocolo HTTP y las reglas de negocio.
- */
 export class PatientController {
   
-  /**
-   * Constructor: Inyecta los Casos de Uso del dominio (Inyección de Dependencias).
-   * @param createPatient Caso de uso para el registro de nuevos pacientes.
-   * @param listPatients Caso de uso para la recuperación masiva y paginada.
-   * @param updatePatient Caso de uso para la edición de perfiles existentes.
-   * @param getPatientById Caso de uso para la consulta de expedientes individuales.
-   */
   constructor(
     private readonly createPatient: any,
     private readonly listPatients: any,
@@ -33,51 +21,52 @@ export class PatientController {
   // ============================================================
   // 1. OPERACIONES DE ESCRITURA (COMMANDS)
   // ============================================================
-/**
-   * Registra un nuevo paciente en la plataforma.
-   * @endpoint POST /api/patients
-   */
+
   create = async (req: any, res: Response): Promise<void> => {
     try {
-      // 1. Extraemos el ID del Fisioterapeuta desde su Token
-      const idPhysio = req.user?.id; 
+      // 1. Extraemos el ID de usuario del Token
+      const userIdFromToken = req.user?.id || req.user?.id_user; 
       const rawData = req.body;
 
-      if (!idPhysio) {
-        res.status(401).json({ success: false, message: "No autorizado. Falta ID del fisioterapeuta." });
+      if (!userIdFromToken) {
+        res.status(401).json({ success: false, message: "No autorizado. Falta token válido." });
         return;
       }
 
-      // 2. CREAMOS EL ACCESO PARA LA APP MÓVIL (Tabla Users)
-      // Como dijeron que no usarán contraseña, le metemos un texto por defecto para que la BD no llore
-      // (Asumiendo que la columna role y status existen en tu modelo UserModel)
-      const newUser: any = await UserModel.create({
-        email: rawData.email,
-        password: "NO_PASSWORD_MOBILE_LOGIN", // Contraseña dummy
-        role: 'patient',
-        status: 'approved'
-      });
+      // 🪄 2. TRADUCTOR DE IDs: Buscamos el ID real de Fisioterapeuta
+      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
+      
+      if (!physioRecord) {
+        res.status(403).json({ success: false, message: "El usuario logueado no tiene un perfil de fisioterapeuta válido." });
+        return;
+      }
 
-      // Sacamos el ID generado para el usuario
-      const idDelNuevoUsuario = newUser.id_user || newUser.getDataValue('id_user');
+      const idPhysioReal = (physioRecord as any).id_physio; // ¡Este es el ID correcto para la BD!
 
-      // 3. TRADUCTOR: Convertimos de camelCase (Angular) a snake_case (Base de Datos)
-      const translatedData = {
-        first_name: rawData.firstName,
-        last_name_paternal: rawData.lastNameP, 
-        last_name_maternal: rawData.lastNameM, 
-        email: rawData.email,
-        phone: rawData.phone,
-        birth_date: rawData.birthYear ? `${rawData.birthYear}-01-01` : null,        
-        gender: rawData.gender,
-        height: rawData.height,
-        weight: rawData.weight,
-        id_user: idDelNuevoUsuario, 
-        id_physio: idPhysio         
+      // 3. EMPAQUETAMOS LOS DATOS PARA LA TRANSACCIÓN
+      const payloadTransaccion = {
+        userData: {
+          email: rawData.email,
+          password: "NO_PASSWORD_MOBILE_LOGIN", // Contraseña dummy
+          role: 'patient',
+          status: 'approved'
+        },
+        patientData: {
+          first_name: rawData.firstName,
+          last_name_paternal: rawData.lastNameP, 
+          last_name_maternal: rawData.lastNameM, 
+          email: rawData.email,
+          phone: rawData.phone,
+          birth_date: rawData.birthYear ? `${rawData.birthYear}-01-01` : null,        
+          gender: rawData.gender,
+          height: rawData.height,
+          weight: rawData.weight,
+          id_physio: idPhysioReal // 🪄 USAMOS EL ID TRADUCIDO
+        }
       };
 
-      // 4. GUARDAMOS EL EXPEDIENTE DEL PACIENTE
-      const patient = await this.createPatient.execute(translatedData);
+      // 4. ENVIAMOS EL PAQUETE AL CASO DE USO
+      const patient = await this.createPatient.execute(payloadTransaccion);
       
       res.status(201).json({ 
         success: true, 
@@ -86,13 +75,11 @@ export class PatientController {
       });
 
     } catch (error: any) {
-      // Tratamiento de errores de validación (Zod)
       if (error.name === 'ZodError') {
         res.status(400).json({ success: false, message: "Error de validación.", errors: error.errors });
         return;
       }
       
-      // Tratamiento de errores de duplicidad (Sequelize Unique)
       if (error.name === 'SequelizeUniqueConstraintError') {
         res.status(409).json({ success: false, message: `El correo electrónico ya está registrado en el sistema.` });
         return;
@@ -102,10 +89,6 @@ export class PatientController {
     }
   };
 
-  /**
-   * Actualiza la información del expediente y el acceso móvil.
-   * @endpoint PUT /api/patients/:id
-   */
   update = async (req: any, res: Response): Promise<void> => {
     try {
       const patientId = parseInt(req.params.id, 10);
@@ -117,7 +100,6 @@ export class PatientController {
 
       const rawData = req.body;
 
-      // 1. BUSCAMOS AL PACIENTE PARA SABER QUÉ USUARIO ES (Su cuenta móvil)
       const pacienteActual = await PatientModel.findByPk(patientId);
       if (!pacienteActual) {
         res.status(404).json({ success: false, message: "Paciente no encontrado en la BD." });
@@ -126,7 +108,6 @@ export class PatientController {
 
       const idUsuarioMovil = pacienteActual.getDataValue('id_user');
 
-      // 2. ACTUALIZAMOS EL CORREO EN LA TABLA USERS (El login de la app móvil)
       if (rawData.email && idUsuarioMovil) {
         await UserModel.update(
           { email: rawData.email },
@@ -134,26 +115,21 @@ export class PatientController {
         );
       }
 
-      // 3. TRADUCTOR A PRUEBA DE BALAS PARA LA TABLA PATIENTS
       const translatedData: any = {
         first_name: rawData.firstName,
         last_name_paternal: rawData.lastNameP,
         last_name_maternal: rawData.lastNameM,
-        // Forzamos el -01-01 para que la base de datos lo acepte como DATE
         birth_date: rawData.birthYear ? `${rawData.birthYear}-01-01` : undefined,
         height: rawData.height,
         weight: rawData.weight
       };
 
-      // Limpiamos los campos vacíos para no borrar nada por accidente
       Object.keys(translatedData).forEach(key => {
         if (translatedData[key] === undefined) {
           delete translatedData[key];
         }
       });
 
-      // 4. ACTUALIZAMOS EL PACIENTE DIRECTO EN LA BD 
-      // (Saltamos la validación estricta de Zod aquí porque los datos ya vienen limpios y traducidos)
       await PatientModel.update(translatedData, { where: { id_patient: patientId } });
 
       res.status(200).json({ 
@@ -174,18 +150,29 @@ export class PatientController {
   // 2. OPERACIONES DE LECTURA (QUERIES)
   // ============================================================
 
-  /**
-   * Obtiene la lista global de pacientes con soporte de paginación.
-   * @endpoint GET /api/patients
-   */
-  list = async (req: Request, res: Response): Promise<void> => {
+  list = async (req: any, res: Response): Promise<void> => {
     try {
-      // Parámetros de paginación seguros
+      const userIdFromToken = req.user?.id || req.user?.id_user; 
+      
+      if (!userIdFromToken) {
+        res.status(401).json({ success: false, message: "No autorizado." });
+        return;
+      }
+
+      // 🪄 TRADUCTOR DE IDs PARA LISTAR LOS PACIENTES
+      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
+      if (!physioRecord) {
+        res.status(403).json({ success: false, message: "Perfil de fisioterapeuta no encontrado." });
+        return;
+      }
+
+      const idPhysioReal = (physioRecord as any).id_physio;
+
       const limit = Math.min(Number(req.query.limit ?? 20), 100);
       const page = Math.max(Number(req.query.page ?? 1), 1);
       const offset = (page - 1) * limit;
 
-      const result = await this.listPatients.execute({ limit, offset });
+      const result = await this.listPatients.execute({ limit, offset, id_physio: idPhysioReal });
       
       res.status(200).json({ 
         success: true, 
@@ -199,10 +186,6 @@ export class PatientController {
     }
   };
 
-  /**
-   * Recupera el expediente detallado de un paciente por su ID.
-   * @endpoint GET /api/patients/:id
-   */
   getById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
     try {
       const patientId = parseInt(req.params.id, 10);

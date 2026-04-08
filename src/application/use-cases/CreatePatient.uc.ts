@@ -1,10 +1,10 @@
 import { PatientRepository } from "../ports/out/PatientRepository";
-import { CreatePatientDTO } from "../dtos/patient.dto";
 
 export class CreatePatientUseCase {
   constructor(private readonly patientRepository: PatientRepository) {}
 
-  async execute(data: CreatePatientDTO) {
+  async execute(data: any) {
+    // Simplemente le pasa el paquete completo (UserData + PatientData) al repositorio
     return await this.patientRepository.create(data);
   }
 }
