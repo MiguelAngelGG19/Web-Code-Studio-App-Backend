@@ -8,6 +8,8 @@
 
 import { Request, Response } from "express";
 import { RoutineSchema } from "../../../application/dtos/schemas";
+import { AddExercisesToRoutineUseCase } from "../../../application/use-cases/AddExercisesToRoutine.uc";
+import { CreateRoutineTemplateDirectUseCase } from "../../../application/use-cases/CreateRoutineTemplateDirect.uc";
 
 /**
  * Clase controladora para la entidad Rutina.
@@ -26,7 +28,13 @@ export class RoutineController {
     private readonly createRoutine: any,
     private readonly getPatientRoutine: any,
     private readonly getRoutineById: any,
-    private readonly getPatientRoutineHistory: any
+    private readonly getPatientRoutineHistory: any,
+    private readonly addExercisesToRoutine: AddExercisesToRoutineUseCase,
+    private readonly addExercisesToTemplate: any,
+    private readonly createRoutineTemplate: any,
+    private readonly createRoutineTemplateDirect: CreateRoutineTemplateDirectUseCase,
+    private readonly listRoutineTemplates: any,
+    private readonly getRoutineTemplateById: any,
   ) {}
 
   // ============================================================
@@ -126,6 +134,164 @@ export class RoutineController {
       res.status(200).json({ success: true, data: history });
     } catch (error: any) {
       res.status(500).json({ success: false, message: "Error interno al recuperar el historial clínico." });
+    }
+  };
+
+  /**
+   * Añade uno o más ejercicios a una rutina existente.
+   * @endpoint PUT /api/routines/:id
+   */
+  update = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const routineId = parseInt(req.params.id, 10);
+      if (isNaN(routineId)) {
+        res.status(400).json({ success: false, message: "ID de rutina inválido." });
+        return;
+      }
+
+      const { exerciseIds, exerciseItems } = req.body;
+      const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
+      const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
+
+      if (!hasIds && !hasItems) {
+        res.status(400).json({ success: false, message: "Se requiere 'exerciseIds' o 'exerciseItems' con al menos un elemento." });
+        return;
+      }
+
+      const updated = await this.addExercisesToRoutine.execute(routineId, exerciseIds || [], exerciseItems || []);
+      res.status(200).json({ success: true, message: "Ejercicios actualizados en la rutina.", data: updated });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Convierte una rutina existente en plantilla reusable.
+   * @endpoint POST /api/routines/:id/template
+   */
+  saveAsTemplate = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const routineId = parseInt(req.params.id, 10);
+      if (isNaN(routineId)) {
+        res.status(400).json({ success: false, message: "ID de rutina inválido." });
+        return;
+      }
+
+      const physiotherapistId = Number(req.body?.physiotherapistId);
+      if (!physiotherapistId) {
+        res.status(400).json({ success: false, message: "Se requiere physiotherapistId para crear plantilla." });
+        return;
+      }
+
+      const template = await this.createRoutineTemplate.execute({
+        routineId,
+        physiotherapistId,
+        name: req.body?.name,
+        tag: req.body?.tag,
+      });
+
+      res.status(201).json({ success: true, message: "Plantilla guardada exitosamente.", data: template });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Crea plantilla directa sin depender de una rutina/paciente.
+   * @endpoint POST /api/routines/templates
+   */
+  createTemplate = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const physiotherapistId = Number(req.body?.physiotherapistId);
+      if (!physiotherapistId) {
+        res.status(400).json({ success: false, message: "Se requiere physiotherapistId para crear plantilla." });
+        return;
+      }
+
+      const template = await this.createRoutineTemplateDirect.execute({
+        name: req.body?.name,
+        tag: req.body?.tag,
+        physiotherapistId,
+        exerciseIds: req.body?.exerciseIds,
+        exerciseItems: req.body?.exerciseItems,
+      });
+
+      res.status(201).json({ success: true, message: "Plantilla creada exitosamente.", data: template });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Añade ejercicios a una plantilla existente.
+   * @endpoint PUT /api/routines/templates/:id
+   */
+  updateTemplate = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const templateId = parseInt(req.params.id, 10);
+      if (isNaN(templateId)) {
+        res.status(400).json({ success: false, message: "ID de plantilla inválido." });
+        return;
+      }
+
+      const { exerciseIds, exerciseItems } = req.body;
+      const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
+      const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
+
+      if (!hasIds && !hasItems) {
+        res.status(400).json({ success: false, message: "Se requiere 'exerciseIds' o 'exerciseItems' con al menos un elemento." });
+        return;
+      }
+
+      const updated = await this.addExercisesToTemplate.execute(
+        templateId,
+        exerciseIds || [],
+        exerciseItems || [],
+        req.body?.name,
+        req.body?.tag,
+      );
+      res.status(200).json({ success: true, message: "Ejercicio agregado a la plantilla.", data: updated });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Lista plantillas de un fisioterapeuta.
+   * @endpoint GET /api/routines/templates?physiotherapistId=1&tag=Columna
+   */
+  listTemplates = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const physiotherapistId = Number(req.query?.physiotherapistId);
+      if (!physiotherapistId) {
+        res.status(400).json({ success: false, message: "Se requiere query physiotherapistId." });
+        return;
+      }
+
+      const tag = req.query?.tag ? String(req.query.tag) : undefined;
+      const templates = await this.listRoutineTemplates.execute(physiotherapistId, tag);
+      res.status(200).json({ success: true, data: templates });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Detalle de plantilla por ID.
+   * @endpoint GET /api/routines/templates/:id
+   */
+  getTemplateById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    try {
+      const templateId = parseInt(req.params.id, 10);
+      if (isNaN(templateId)) {
+        res.status(400).json({ success: false, message: "ID de plantilla inválido." });
+        return;
+      }
+
+      const template = await this.getRoutineTemplateById.execute(templateId);
+      res.status(200).json({ success: true, data: template });
+    } catch (error: any) {
+      res.status(404).json({ success: false, message: error.message });
     }
   };
 }

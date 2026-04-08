@@ -3,8 +3,7 @@ import { CreateAppointmentUseCase } from "../../../application/use-cases/CreateA
 import { GetAppointmentsByPatientUseCase } from "../../../application/use-cases/GetAppointmentsByPatient.uc";
 import { UpdateAppointmentUseCase } from "../../../application/use-cases/UpdateAppointment.uc";
 import { GetAppointmentsByPhysioUseCase } from "../../../application/use-cases/GetAppointmentsByPhysio.uc";
-// 🪄 IMPORTAMOS EL MODELO DEL FISIO
-import { PhysiotherapistModel } from "../../../infrastructure/persistence/sequelize/client";
+import { PhysiotherapistModel } from "../../persistence/sequelize/client";
 
 export class AppointmentController {
   constructor(
@@ -19,32 +18,42 @@ export class AppointmentController {
     this.getMyPhysioAppointments = this.getMyPhysioAppointments.bind(this);
   }
 
+  private async resolvePhysioId(req: any): Promise<number | null> {
+    const tokenPhysioId = Number(req.user?.id_physio);
+    if (tokenPhysioId && !Number.isNaN(tokenPhysioId)) {
+      return tokenPhysioId;
+    }
+
+    const tokenUserId = Number(req.user?.id || req.user?.id_user);
+    if (!tokenUserId || Number.isNaN(tokenUserId)) {
+      return null;
+    }
+
+    const physio: any = await PhysiotherapistModel.findOne({ where: { id_user: tokenUserId } });
+    if (!physio) {
+      return null;
+    }
+
+    return Number(physio.id_physio || physio.getDataValue("id_physio"));
+  }
+
   async create(req: any, res: Response): Promise<void> {
     try {
-      // 1. Extraemos el ID del usuario del token
-      const userIdFromToken = req.user?.id || req.user?.id_user;
+      // 1. Usamos la función de tu compañero que ya hace toda la magia
+      const physioId = await this.resolvePhysioId(req);
 
-      if (!userIdFromToken) {
-        res.status(401).json({ message: "No autorizado. No se detectó la sesión." });
+      if (!physioId) {
+        res.status(401).json({ message: "No autorizado. No se pudo resolver el fisioterapeuta autenticado." });
         return;
       }
 
-      // 🪄 2. TRADUCTOR DE IDs: Obtenemos el verdadero id_physio
-      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
-      if (!physioRecord) {
-        res.status(403).json({ message: "No tienes un perfil de fisioterapeuta válido para agendar." });
-        return;
-      }
-
-      const idPhysioReal = (physioRecord as any).id_physio;
-
-      // 3. Armamos el paquete combinando lo que manda Angular + el ID seguro
+      // 2. Armamos el paquete combinando lo que manda Angular + el ID seguro
       const appointmentData = {
         ...req.body,
-        id_physio: idPhysioReal
+        id_physio: physioId // Usamos el ID que la función ya nos trajo limpiecito
       };
 
-      // 4. Ejecutamos el caso de uso
+      // 3. Ejecutamos el caso de uso
       const result = await this.createAppointment.execute(appointmentData);
       res.status(201).json(result);
       
@@ -73,23 +82,13 @@ export class AppointmentController {
 
   async getMyPhysioAppointments(req: any, res: Response): Promise<void> {
     try {
-      const userIdFromToken = req.user?.id || req.user?.id_user;
-      
-      if (!userIdFromToken) {
-        res.status(401).json({ message: "No autorizado." });
+      const idPhysio = await this.resolvePhysioId(req);
+      if (!idPhysio) {
+        res.status(401).json({ message: "No autorizado. No se pudo resolver el fisioterapeuta autenticado." });
         return;
       }
 
-      // 🪄 TRADUCTOR DE IDs
-      const physioRecord = await PhysiotherapistModel.findOne({ where: { id_user: userIdFromToken } });
-      if (!physioRecord) {
-        res.status(403).json({ message: "Perfil de fisioterapeuta no encontrado." });
-        return;
-      }
-
-      const idPhysioReal = (physioRecord as any).id_physio;
-
-      const result = await this.getAppointmentsByPhysio.execute(idPhysioReal);
+      const result = await this.getAppointmentsByPhysio.execute(idPhysio);
       res.status(200).json(result);
     } catch (err: any) {
       res.status(400).json({ message: err.message });

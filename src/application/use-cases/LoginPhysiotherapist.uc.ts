@@ -49,11 +49,13 @@ export class LoginPhysiotherapistUseCase {
     // 🪄 EXTRAEMOS LOS NOMBRES DE LA BASE DE DATOS
     const firstName = datosFisio ? datosFisio.first_name : '';
     const lastNameP = datosFisio ? datosFisio.last_name_paternal : '';
+    const idPhysioReal = datosFisio ? Number(datosFisio.id_physio || datosFisio.getDataValue('id_physio')) : undefined;
 
     // 2. Generar JWT
     const token = jwt.sign(
       {
         id: fisio.id_user, 
+        id_physio: idPhysioReal,
         email: fisio.email,
         role: fisio.role,
         status: estatusReal,
@@ -69,6 +71,7 @@ export class LoginPhysiotherapistUseCase {
       token,
       fisio: {
         id: fisio.id_user, 
+        id_physio: idPhysioReal,
         email: fisio.email,
         role: fisio.role,
         status: estatusReal,
