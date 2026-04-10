@@ -34,7 +34,8 @@ export function buildRoutes(controllers: {
   router.post("/physiotherapists",              authMiddleware, controllers.physioController.create);
   router.get("/physiotherapists/:id",           authMiddleware, controllers.physioController.getById);
   router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
-
+  router.patch("/auth/update-email", authMiddleware, controllers.authController.updateEmail);
+  router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
   // 🟢 RUTA: SUBIDA DE DOCUMENTOS (VERSIÓN FINAL CON COLUMNAS REALES)
   // 🔓 ESTA SOLO LLEVA 1 CADENERO (authMiddleware) PORQUE EL FISIO AÚN NO ESTÁ APROBADO
   router.post(

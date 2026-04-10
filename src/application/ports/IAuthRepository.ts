@@ -10,4 +10,7 @@ export interface IAuthRepository {
     professionalLicense: string;
     curp: string;
   }): Promise<any>;
+  findById(idUser: number): Promise<any | null>;
+  updateEmail(idUser: number, newEmail: string): Promise<void>;
+  updatePassword(idUser: number, newPasswordHash: string): Promise<void>;
 }

@@ -25,9 +25,6 @@ import { SequelizeAppointmentRepository } from "./infrastructure/persistence/rep
 import { SequelizeLogbookRepository } from "./infrastructure/persistence/repositories/SequelizeLogbookRepository";
 import { SequelizeNotificationRepository } from "./infrastructure/persistence/repositories/SequelizeNotificationRepository";
 
-
-
-
 // 1. INFRAESTRUCTURA CORE
 import {
   sequelize,
@@ -61,14 +58,16 @@ import { GetAppointmentsByPhysioUseCase } from './application/use-cases/GetAppoi
 import { CreateLogbookUseCase } from "./application/use-cases/CreateLogbook.uc";
 import { GetLogbookByAppointmentUseCase } from "./application/use-cases/GetLogbookByAppointment.uc";
 
-
 // Use Cases — Notificaciones
 import { CreateNotificationUseCase } from "./application/use-cases/CreateNotification.uc";
 import { GetNotificationsByPatientUseCase } from "./application/use-cases/GetNotificationsByPatient.uc";
 import { MarkNotificationAsReadUseCase } from "./application/use-cases/MarkNotificationAsRead.uc";
+
 // --- Fisioterapeutas ---
 import { CreatePhysiotherapistUseCase } from "./application/use-cases/CreatePhysiotherapist.uc";
 import { GetPhysiotherapistByIdUseCase } from "./application/use-cases/GetPhysiotherapistById.uc";
+import { UpdateEmailUseCase } from "./application/use-cases/UpdateEmail.uc";
+import { UpdatePasswordUseCase } from "./application/use-cases/UpdatePassword.uc";
 
 // --- Ejercicios ---
 import { CreateExerciseUseCase } from "./application/use-cases/CreateExercise.uc";
@@ -129,9 +128,9 @@ async function bootstrap() {
     const trackingRepo = new SequelizeTrackingRepository();
     const routineRepo = new SequelizeRoutineRepository();
     const authRepo = new SequelizeAuthRepository();
-const appointmentRepo   = new SequelizeAppointmentRepository();
-const logbookRepo       = new SequelizeLogbookRepository();
-const notificationRepo  = new SequelizeNotificationRepository();
+    const appointmentRepo   = new SequelizeAppointmentRepository();
+    const logbookRepo       = new SequelizeLogbookRepository();
+    const notificationRepo  = new SequelizeNotificationRepository();
 
     // ============================================================
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
@@ -145,12 +144,11 @@ const notificationRepo  = new SequelizeNotificationRepository();
     const getPatientById = new GetPatientByIdUseCase(patientRepo);
     const loginPatientGoogle = new LoginPatientWithGoogleUseCase(patientRepo);
 
-
     // Casos de Uso: Fisioterapeutas
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
     const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
     const approvePhysio     = new ApprovePhysiotherapistUseCase(physioRepo);
-const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
+    const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
 
     // Casos de Uso: Ejercicios
     const createExercise = new CreateExerciseUseCase(exerciseRepo);
@@ -172,24 +170,25 @@ const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
     const addExercisesToTemplate = new AddExercisesToTemplateUseCase(routineRepo);
 
     // Casos de Uso: Auth
-     const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
-     const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
-     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
+    const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
+    const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
+    const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
+    const updateEmail = new UpdateEmailUseCase(authRepo);         // 🪄 AÑADIDO: Caso de uso UpdateEmail
+    const updatePassword = new UpdatePasswordUseCase(authRepo);   // 🪄 AÑADIDO: Caso de uso UpdatePassword
 
-     // Citas
-const createAppointment     = new CreateAppointmentUseCase(appointmentRepo);
-const getAppointmentsByPatient = new GetAppointmentsByPatientUseCase(appointmentRepo);
-const updateAppointment     = new UpdateAppointmentUseCase(appointmentRepo);
+    // Citas
+    const createAppointment     = new CreateAppointmentUseCase(appointmentRepo);
+    const getAppointmentsByPatient = new GetAppointmentsByPatientUseCase(appointmentRepo);
+    const updateAppointment     = new UpdateAppointmentUseCase(appointmentRepo);
 
-// Bitácora
-const createLogbook         = new CreateLogbookUseCase(logbookRepo);
-const getLogbookByAppointment = new GetLogbookByAppointmentUseCase(logbookRepo);
+    // Bitácora
+    const createLogbook         = new CreateLogbookUseCase(logbookRepo);
+    const getLogbookByAppointment = new GetLogbookByAppointmentUseCase(logbookRepo);
 
-// Notificaciones
-const createNotification    = new CreateNotificationUseCase(notificationRepo);
-const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
-const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
-
+    // Notificaciones
+    const createNotification    = new CreateNotificationUseCase(notificationRepo);
+    const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
+    const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
 
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
@@ -203,11 +202,11 @@ const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRep
     );
 
     const physioController = new PhysiotherapistController(
-  createPhysio,
-  getPhysioById,
-  approvePhysio,      // ← nuevo
-  listPendingPhysio,  // ← nuevo
-);
+      createPhysio,
+      getPhysioById,
+      approvePhysio,      
+      listPendingPhysio,  
+    );
 
     const exerciseController = new ExerciseController(
       createExercise, 
@@ -235,30 +234,31 @@ const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRep
     );
 
     const authController = new AuthController(
-  registerPhysio,
-  loginPhysio,
-  loginPatientEmail  // ← antes era loginPatientGoogle
-);
+      registerPhysio,
+      loginPhysio,
+      loginPatientEmail,
+      updateEmail,      // 🪄 AÑADIDO: Pasamos UpdateEmail al controlador
+      updatePassword    // 🪄 AÑADIDO: Pasamos UpdatePassword al controlador
+    );
 
-const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
-const appointmentController = new AppointmentController(
-  createAppointment,
-  getAppointmentsByPatient,
-  updateAppointment,
-  getAppointmentsByPhysioUseCase
-);
+    const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
+    const appointmentController = new AppointmentController(
+      createAppointment,
+      getAppointmentsByPatient,
+      updateAppointment,
+      getAppointmentsByPhysioUseCase
+    );
 
-const logbookController = new LogbookController(
-  createLogbook,
-  getLogbookByAppointment
-);
+    const logbookController = new LogbookController(
+      createLogbook,
+      getLogbookByAppointment
+    );
 
-const notificationController = new NotificationController(
-  createNotification,
-  getNotificationsByPatient,
-  markNotificationAsRead
-);
-
+    const notificationController = new NotificationController(
+      createNotification,
+      getNotificationsByPatient,
+      markNotificationAsRead
+    );
 
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
@@ -272,17 +272,16 @@ const notificationController = new NotificationController(
     // FASE 6: REGISTRO DE RUTAS
     // ============================================================
     app.use("/api", buildRoutes({
-  patientController,
-  physioController,
-  exerciseController,
-  trackingController,
-  routineController,
-  authController,
-  appointmentController,   // ← nuevo
-  logbookController,       // ← nuevo
-  notificationController,  // ← nuevo
-}));
-
+      patientController,
+      physioController,
+      exerciseController,
+      trackingController,
+      routineController,
+      authController,
+      appointmentController,   
+      logbookController,       
+      notificationController,  
+    }));
 
     // ============================================================
     // FASE 7: LANZAMIENTO

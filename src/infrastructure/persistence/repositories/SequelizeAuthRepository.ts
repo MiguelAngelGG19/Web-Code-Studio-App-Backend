@@ -63,4 +63,17 @@ export class SequelizeAuthRepository implements IAuthRepository {
       throw error;
     }
   }
+  // 🪄 NUEVOS MÉTODOS PARA ACTUALIZAR PERFIL
+  async findById(idUser: number): Promise<any | null> {
+    const user = await UserModel.findByPk(idUser);
+    return user ? user.get({ plain: true }) : null;
+  }
+
+  async updateEmail(idUser: number, newEmail: string): Promise<void> {
+    await UserModel.update({ email: newEmail }, { where: { id_user: idUser } });
+  }
+
+  async updatePassword(idUser: number, newPasswordHash: string): Promise<void> {
+    await UserModel.update({ password: newPasswordHash }, { where: { id_user: idUser } });
+  }
 }

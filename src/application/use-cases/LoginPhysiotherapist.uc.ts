@@ -49,8 +49,9 @@ export class LoginPhysiotherapistUseCase {
     // 🪄 EXTRAEMOS LOS NOMBRES DE LA BASE DE DATOS
     const firstName = datosFisio ? datosFisio.first_name : '';
     const lastNameP = datosFisio ? datosFisio.last_name_paternal : '';
+    const lastNameM = datosFisio ? datosFisio.last_name_maternal : '';
     const idPhysioReal = datosFisio ? Number(datosFisio.id_physio || datosFisio.getDataValue('id_physio')) : undefined;
-
+    const Cedula = datosFisio ? datosFisio.professional_license : '';
     // 2. Generar JWT
     const token = jwt.sign(
       {
@@ -61,7 +62,9 @@ export class LoginPhysiotherapistUseCase {
         status: estatusReal,
         // 🪄 ¡LOS AGREGAMOS AL TOKEN AQUÍ!
         first_name: firstName,
-        last_name_paternal: lastNameP
+        last_name_paternal: lastNameP,
+        last_name_maternal: lastNameM,
+        professional_license: Cedula
       },
       process.env.JWT_SECRET || "secret_dev",
       { expiresIn: "8h" }
