@@ -1,5 +1,6 @@
 import { RoutineRepository } from "../ports/out/RoutineRepository";
 import { RoutineExerciseItemDTO } from "../dtos/routine.dto";
+import { AddExercisesOptions } from "../ports/out/RoutineRepository";
 
 /**
  * Caso de uso: Añade ejercicios a una rutina ya existente.
@@ -8,7 +9,7 @@ import { RoutineExerciseItemDTO } from "../dtos/routine.dto";
 export class AddExercisesToRoutineUseCase {
   constructor(private readonly routineRepo: RoutineRepository) {}
 
-  async execute(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[]): Promise<any> {
+  async execute(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], options?: AddExercisesOptions): Promise<any> {
     const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
     const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
 
@@ -20,6 +21,6 @@ export class AddExercisesToRoutineUseCase {
       ? exerciseIds
       : (exerciseItems || []).map(item => item.exerciseId);
 
-    return this.routineRepo.addExercises(routineId, ids, exerciseItems);
+    return this.routineRepo.addExercises(routineId, ids, exerciseItems, options);
   }
 }
