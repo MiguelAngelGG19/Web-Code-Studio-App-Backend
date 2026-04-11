@@ -41,6 +41,9 @@ import { SequelizeExerciseRepository } from "./infrastructure/persistence/reposi
 import { SequelizeTrackingRepository } from "./infrastructure/persistence/repositories/SequelizeTrackingRepository";
 import { SequelizeRoutineRepository } from "./infrastructure/persistence/repositories/SequelizeRoutineRepository";
 
+// 🪄 NUEVO: Repositorio del Dashboard
+import { SequelizeDashboardRepository } from "./infrastructure/persistence/repositories/SequelizeDashboardRepository";
+
 // 3. CASOS DE USO (LÓGICA DE NEGOCIO)
 // --- Pacientes ---
 import { CreatePatientUseCase } from "./application/use-cases/CreatePatient.uc";
@@ -89,6 +92,9 @@ import { CreateRoutineTemplateDirectUseCase } from "./application/use-cases/Crea
 import { ListRoutineTemplatesUseCase } from "./application/use-cases/ListRoutineTemplates.uc";
 import { GetRoutineTemplateByIdUseCase } from "./application/use-cases/GetRoutineTemplateById.uc";
 
+// 🪄 NUEVO: Caso de uso del Dashboard
+import { GetDashboardStatsUseCase } from "./application/use-cases/GetDashboardStats.uc";
+
 // 4. CONTROLADORES (HTTP INTERFACE)
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
 import { PhysiotherapistController } from "./infrastructure/http/controllers/physiotherapist.controller";
@@ -100,6 +106,9 @@ import { RoutineController } from "./infrastructure/http/controllers/routine.con
 import { AppointmentController } from "./infrastructure/http/controllers/appointment.controller";
 import { LogbookController } from "./infrastructure/http/controllers/logbook.controller";
 import { NotificationController } from "./infrastructure/http/controllers/notification.controller";
+
+// 🪄 NUEVO: Controlador del Dashboard
+import { DashboardController } from "./infrastructure/http/controllers/dashboard.controller";
 
 // Cargar variables de entorno (.env)
 dotenv.config();
@@ -131,6 +140,9 @@ async function bootstrap() {
     const appointmentRepo   = new SequelizeAppointmentRepository();
     const logbookRepo       = new SequelizeLogbookRepository();
     const notificationRepo  = new SequelizeNotificationRepository();
+    
+    // 🪄 NUEVO: Instanciamos el repo del dashboard
+    const dashboardRepo = new SequelizeDashboardRepository();
 
     // ============================================================
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
@@ -173,8 +185,8 @@ async function bootstrap() {
     const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
     const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
-    const updateEmail = new UpdateEmailUseCase(authRepo);         // 🪄 AÑADIDO: Caso de uso UpdateEmail
-    const updatePassword = new UpdatePasswordUseCase(authRepo);   // 🪄 AÑADIDO: Caso de uso UpdatePassword
+    const updateEmail = new UpdateEmailUseCase(authRepo);         
+    const updatePassword = new UpdatePasswordUseCase(authRepo);   
 
     // Citas
     const createAppointment     = new CreateAppointmentUseCase(appointmentRepo);
@@ -189,6 +201,9 @@ async function bootstrap() {
     const createNotification    = new CreateNotificationUseCase(notificationRepo);
     const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
     const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
+
+    // 🪄 NUEVO: Instanciamos el caso de uso del dashboard
+    const getDashboardStats = new GetDashboardStatsUseCase(dashboardRepo);
 
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
@@ -237,8 +252,8 @@ async function bootstrap() {
       registerPhysio,
       loginPhysio,
       loginPatientEmail,
-      updateEmail,      // 🪄 AÑADIDO: Pasamos UpdateEmail al controlador
-      updatePassword    // 🪄 AÑADIDO: Pasamos UpdatePassword al controlador
+      updateEmail,      
+      updatePassword    
     );
 
     const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
@@ -260,6 +275,9 @@ async function bootstrap() {
       markNotificationAsRead
     );
 
+    // 🪄 NUEVO: Instanciamos el controlador del dashboard
+    const dashboardController = new DashboardController(getDashboardStats);
+
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
     // ============================================================
@@ -280,7 +298,8 @@ async function bootstrap() {
       authController,
       appointmentController,   
       logbookController,       
-      notificationController,  
+      notificationController,
+      dashboardController // 🪄 AÑADIDO AQUI
     }));
 
     // ============================================================

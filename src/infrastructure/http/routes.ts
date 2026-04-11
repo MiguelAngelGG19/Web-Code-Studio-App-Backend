@@ -14,6 +14,7 @@ export function buildRoutes(controllers: {
   appointmentController:   any;
   logbookController:       any;
   notificationController:  any;
+  dashboardController:     any; // 🪄 AÑADIDO: Declaramos el nuevo controlador
 }) {
   const router = Router();
 
@@ -36,6 +37,7 @@ export function buildRoutes(controllers: {
   router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
   router.patch("/auth/update-email", authMiddleware, controllers.authController.updateEmail);
   router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
+  
   // 🟢 RUTA: SUBIDA DE DOCUMENTOS (VERSIÓN FINAL CON COLUMNAS REALES)
   // 🔓 ESTA SOLO LLEVA 1 CADENERO (authMiddleware) PORQUE EL FISIO AÚN NO ESTÁ APROBADO
   router.post(
@@ -90,6 +92,9 @@ export function buildRoutes(controllers: {
   // 🛡️ A PARTIR DE AQUÍ, TODAS LAS RUTAS OPERATIVAS LLEVAN LOS 2 CADENEROS:
   // authMiddleware (Verifica que haya iniciado sesión) + requireApproval (Verifica que el admin ya lo aprobó)
 
+  // 🪄 NUEVO: Ruta del Dashboard
+  router.get("/dashboard/stats", authMiddleware, requireApproval, controllers.dashboardController.getStats);
+
   // Pacientes
   router.post("/patients",     authMiddleware, requireApproval, controllers.patientController.create);
   router.get("/patients",      authMiddleware, requireApproval, controllers.patientController.list);
@@ -105,7 +110,6 @@ export function buildRoutes(controllers: {
   router.post("/tracking", authMiddleware, requireApproval, controllers.trackingController.create);
 
   // Rutinas
-
   router.post("/routines",                              authMiddleware, controllers.routineController.create);
   router.post("/routines/templates",                    authMiddleware, controllers.routineController.createTemplate);
   router.put("/routines/templates/:id",                 authMiddleware, controllers.routineController.updateTemplate);
@@ -122,6 +126,7 @@ export function buildRoutes(controllers: {
   router.get("/appointments/patient/:patientId",     authMiddleware, requireApproval, controllers.appointmentController.getByPatient);
   router.put("/appointments/:id",                    authMiddleware, requireApproval, controllers.appointmentController.update);
   router.get("/appointments",                        authMiddleware, requireApproval, controllers.appointmentController.getMyPhysioAppointments);
+  
   // Bitácora
   router.post("/logbook",                            authMiddleware, requireApproval, controllers.logbookController.create);
   router.get("/logbook/appointment/:appointmentId",  authMiddleware, requireApproval, controllers.logbookController.getByAppointment);
