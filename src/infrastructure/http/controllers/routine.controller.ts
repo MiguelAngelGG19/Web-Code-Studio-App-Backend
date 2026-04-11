@@ -149,7 +149,7 @@ export class RoutineController {
         return;
       }
 
-      const { exerciseIds, exerciseItems } = req.body;
+      const { exerciseIds, exerciseItems, replaceExisting, name, startDate, endDate } = req.body;
       const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
       const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
 
@@ -158,7 +158,17 @@ export class RoutineController {
         return;
       }
 
-      const updated = await this.addExercisesToRoutine.execute(routineId, exerciseIds || [], exerciseItems || []);
+      const updated = await this.addExercisesToRoutine.execute(
+        routineId,
+        exerciseIds || [],
+        exerciseItems || [],
+        {
+          replaceExisting: Boolean(replaceExisting),
+          name,
+          startDate,
+          endDate,
+        }
+      );
       res.status(200).json({ success: true, message: "Ejercicios actualizados en la rutina.", data: updated });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
@@ -249,6 +259,7 @@ export class RoutineController {
         exerciseItems || [],
         req.body?.name,
         req.body?.tag,
+        { replaceExisting: Boolean(req.body?.replaceExisting) },
       );
       res.status(200).json({ success: true, message: "Ejercicio agregado a la plantilla.", data: updated });
     } catch (error: any) {

@@ -1,6 +1,9 @@
 import { RoutineRepository } from "../../../application/ports/out/RoutineRepository";
+import { AddExercisesOptions } from "../../../application/ports/out/RoutineRepository";
+import { AddTemplateExercisesOptions } from "../../../application/ports/out/RoutineRepository";
 import { CreateRoutineDTO, CreateRoutineTemplateDTO, RoutineExerciseItemDTO } from "../../../application/dtos/routine.dto";
 import { CreateRoutineTemplateDirectDTO } from "../../../application/use-cases/CreateRoutineTemplateDirect.uc";
+import { Op } from "sequelize";
 import {
   RoutineModel,
   RoutineExerciseModel,
@@ -116,15 +119,50 @@ export class SequelizeRoutineRepository implements RoutineRepository {
    * Añade ejercicios a una rutina existente.
    * Ignora IDs que ya estén vinculados (ignoreDuplicates).
    */
-  async addExercises(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[]): Promise<any> {
+  async addExercises(routineId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], options?: AddExercisesOptions): Promise<any> {
     const transaction = await sequelize.transaction();
     try {
+      const replaceExisting = Boolean(options?.replaceExisting);
+      const normalizedName = typeof options?.name === "string" ? options.name.trim() : "";
+      const routine = await RoutineModel.findByPk(routineId, { transaction });
+      if (!routine) {
+        throw new Error("No se encontró la rutina a editar.");
+      }
+
+      if (normalizedName) {
+        const duplicated = await RoutineModel.findOne({
+          where: {
+            id_patient: (routine as any).id_patient,
+            name: normalizedName,
+            id_routine: { [Op.ne]: routineId },
+          },
+          transaction,
+        });
+
+        if (duplicated) {
+          throw new Error("Ya existe una rutina con ese nombre para este paciente.");
+        }
+      }
+
+      const routineUpdates: any = {};
+      if (normalizedName) routineUpdates.name = normalizedName;
+      if (typeof options?.startDate === "string" && options.startDate.trim()) routineUpdates.start_date = options.startDate;
+      if (typeof options?.endDate === "string" && options.endDate.trim()) routineUpdates.end_date = options.endDate;
+      if (Object.keys(routineUpdates).length > 0) {
+        await RoutineModel.update(routineUpdates, { where: { id_routine: routineId }, transaction });
+      }
+
       const detailedMap = new Map<number, RoutineExerciseItemDTO>();
       (exerciseItems || []).forEach(item => {
-        if (item?.exerciseId) detailedMap.set(item.exerciseId, item);
+        const exerciseId = Number(item?.exerciseId);
+        if (Number.isFinite(exerciseId)) detailedMap.set(exerciseId, item);
       });
 
-      const entries = exerciseIds.map((exerciseId, index) => {
+      const normalizedIds = Array.from(new Set((exerciseIds || [])
+        .map((id: any) => Number(id))
+        .filter((id: number) => Number.isFinite(id))));
+
+      const entries = normalizedIds.map((exerciseId, index) => {
         const detail = detailedMap.get(exerciseId);
         return {
           id_exercise: exerciseId,
@@ -135,6 +173,27 @@ export class SequelizeRoutineRepository implements RoutineRepository {
           notes: detail?.notes ?? null,
         };
       });
+
+      if (replaceExisting) {
+        const currentRows = await RoutineExerciseModel.findAll({
+          where: { id_routine: routineId },
+          attributes: ["id_exercise"],
+          transaction,
+        });
+
+        const currentIds = currentRows.map((row: any) => Number(row.id_exercise ?? row.getDataValue("id_exercise")));
+        const idsToRemove = currentIds.filter((id: number) => !normalizedIds.includes(id));
+
+        if (idsToRemove.length > 0) {
+          await RoutineExerciseModel.destroy({
+            where: {
+              id_routine: routineId,
+              id_exercise: idsToRemove,
+            },
+            transaction,
+          });
+        }
+      }
 
       await RoutineExerciseModel.bulkCreate(entries, {
         ignoreDuplicates: true,
@@ -245,9 +304,14 @@ export class SequelizeRoutineRepository implements RoutineRepository {
     }
   }
 
-  async addExercisesToTemplate(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string): Promise<any> {
+  async addExercisesToTemplate(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string, options?: AddTemplateExercisesOptions): Promise<any> {
     const transaction = await sequelize.transaction();
     try {
+      const replaceExisting = Boolean(options?.replaceExisting);
+      const normalizedIds = Array.from(new Set((exerciseIds || [])
+        .map((id: any) => Number(id))
+        .filter((id: number) => Number.isFinite(id))));
+
       const updates: any = {};
       if (typeof name === "string" && name.trim().length > 0) updates.name = name.trim();
       if (typeof tag === "string" && tag.trim().length > 0) updates.tag = tag.trim();
@@ -260,10 +324,11 @@ export class SequelizeRoutineRepository implements RoutineRepository {
 
       const detailedMap = new Map<number, RoutineExerciseItemDTO>();
       (exerciseItems || []).forEach(item => {
-        if (item?.exerciseId) detailedMap.set(item.exerciseId, item);
+        const exerciseId = Number(item?.exerciseId);
+        if (Number.isFinite(exerciseId)) detailedMap.set(exerciseId, item);
       });
 
-      const entries = exerciseIds.map((exerciseId, index) => {
+      const entries = normalizedIds.map((exerciseId, index) => {
         const detail = detailedMap.get(exerciseId);
         return {
           id_template: templateId,
@@ -275,13 +340,31 @@ export class SequelizeRoutineRepository implements RoutineRepository {
         };
       });
 
-      await RoutineTemplateExerciseModel.destroy({
-        where: { id_template: templateId },
-        transaction,
-      });
+      if (replaceExisting) {
+        const currentRows = await RoutineTemplateExerciseModel.findAll({
+          where: { id_template: templateId },
+          attributes: ["id_exercise"],
+          transaction,
+        });
+
+        const currentIds = currentRows.map((row: any) => Number(row.id_exercise ?? row.getDataValue("id_exercise")));
+        const idsToRemove = currentIds.filter((id: number) => !normalizedIds.includes(id));
+
+        if (idsToRemove.length > 0) {
+          await RoutineTemplateExerciseModel.destroy({
+            where: {
+              id_template: templateId,
+              id_exercise: idsToRemove,
+            },
+            transaction,
+          });
+        }
+      }
 
       if (entries.length > 0) {
         await RoutineTemplateExerciseModel.bulkCreate(entries, {
+          ignoreDuplicates: true,
+          updateOnDuplicate: ["repetitions", "sets", "exercise_order", "notes"],
           transaction,
         });
       }

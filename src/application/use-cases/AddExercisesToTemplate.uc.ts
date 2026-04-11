@@ -1,10 +1,11 @@
 import { RoutineRepository } from "../ports/out/RoutineRepository";
 import { RoutineExerciseItemDTO } from "../dtos/routine.dto";
+import { AddTemplateExercisesOptions } from "../ports/out/RoutineRepository";
 
 export class AddExercisesToTemplateUseCase {
   constructor(private readonly routineRepo: RoutineRepository) {}
 
-  async execute(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string): Promise<any> {
+  async execute(templateId: number, exerciseIds: number[], exerciseItems?: RoutineExerciseItemDTO[], name?: string, tag?: string, options?: AddTemplateExercisesOptions): Promise<any> {
     const hasIds = Array.isArray(exerciseIds) && exerciseIds.length > 0;
     const hasItems = Array.isArray(exerciseItems) && exerciseItems.length > 0;
 
@@ -16,6 +17,6 @@ export class AddExercisesToTemplateUseCase {
       ? exerciseIds
       : (exerciseItems || []).map(item => item.exerciseId);
 
-    return this.routineRepo.addExercisesToTemplate(templateId, ids, exerciseItems, name, tag);
+    return this.routineRepo.addExercisesToTemplate(templateId, ids, exerciseItems, name, tag, options);
   }
 }
