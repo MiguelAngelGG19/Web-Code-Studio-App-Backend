@@ -1,30 +1,35 @@
 {
   "compilerOptions": {
     /* Opciones Básicas */
-    "target": "ES2020",                                  /* Versión de JavaScript de salida */
-    "module": "commonjs",                                /* Sistema de módulos para Node.js */
-    "lib": ["es2020"],                                   /* Librerías disponibles en el entorno */
-    "outDir": "./dist",                                  /* Carpeta donde se guardará el código compilado */
-    "rootDir": "./src",                                  /* Dónde está tu código fuente */
-    
+    "target": "ES2020", /* Versión de JavaScript de salida */
+    "module": "commonjs", /* Sistema de módulos para Node.js */
+    "lib": [
+      "es2020"
+    ], /* Librerías disponibles en el entorno */
+    "outDir": "./dist", /* Carpeta donde se guardará el código compilado */
+    "rootDir": "./src", /* Dónde está tu código fuente */
     /* Opciones de Rigurosidad */
-    "strict": true,                                      /* Activa todas las comprobaciones estrictas */
-    "noImplicitAny": true,                               /* Evita el uso accidental de 'any' */
-    "skipLibCheck": true,                                /* Acelera la compilación ignorando errores en librerías externas */
-
+    "strict": true, /* Activa todas las comprobaciones estrictas */
+    "noImplicitAny": true, /* Evita el uso accidental de 'any' */
+    "skipLibCheck": true, /* Acelera la compilación ignorando errores en librerías externas */
     /* Opciones de Compatibilidad (CRÍTICO PARA CORS) */
-    "esModuleInterop": true,                             /* Permite importar librerías CommonJS como módulos ES6 */
-    "allowSyntheticDefaultImports": true,                /* Necesario para que 'import cors from "cors"' funcione */
-    "resolveJsonModule": true,                           /* Permite importar archivos .json */
-    
+    "esModuleInterop": true, /* Permite importar librerías CommonJS como módulos ES6 */
+    "allowSyntheticDefaultImports": true, /* Necesario para que 'import cors from "cors"' funcione */
+    "resolveJsonModule": true, /* Permite importar archivos .json */
     /* Configuración de Rutas */
     "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "*": ["node_modules/*"]
+      "*": [
+        "node_modules/*"
+      ]
     }
   },
-  "include": ["src/**/*"],                               /* Incluye todo lo que esté dentro de src */
-  "exclude": ["node_modules", "**/*.spec.ts"]            /* Ignora las librerías instaladas */
+  "include": [
+    "src/**/*"
+  ], /* Incluye todo lo que esté dentro de src */
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ] /* Ignora las librerías instaladas */
 }
