@@ -1,4 +1,5 @@
 import { SequelizeAppointmentRepository } from "../../infrastructure/persistence/repositories/SequelizeAppointmentRepository";
+import { NotificationModel } from "../../infrastructure/persistence/sequelize/client";
 
 export class CreateAppointmentUseCase {
   constructor(private repo: SequelizeAppointmentRepository) {}
@@ -41,6 +42,21 @@ export class CreateAppointmentUseCase {
         }
     }
 
-    return this.repo.create(data);
+    const appointment = await this.repo.create(data);
+
+    // NUEVO: Disparar notificación de cita creada
+    try {
+      await NotificationModel.create({
+        type: 'cita',
+        message: `Tu fisioterapeuta te ha agendado una nueva sesión el día ${data.date} a las ${data.start_time.substring(0, 5)}.`,
+        id_patient: data.id_patient,
+        id_physio: data.id_physio,
+        origin: 'physio'
+      });
+    } catch (error) {
+      console.error("Error al crear la notificación de cita:", error);
+    }
+
+    return appointment;
   }
 }
