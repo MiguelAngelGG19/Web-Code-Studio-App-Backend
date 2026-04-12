@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware"; // se añadio para los pdf
-import { requireApproval } from "./middlewares/approved.middleware"; // <--- 1. IMPORTAMOS EL NUEVO CADENERO
+import { requireApproval } from "./middlewares/approved.middleware";
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
 
 export function buildRoutes(controllers: {
@@ -14,12 +14,12 @@ export function buildRoutes(controllers: {
   appointmentController:   any;
   logbookController:       any;
   notificationController:  any;
-  dashboardController:     any; // 🪄 AÑADIDO: Declaramos el nuevo controlador
+  dashboardController:     any;
 }) {
   const router = Router();
 
   // ============================================================
-  // RUTAS PÚBLICAS (sin token)
+  // RUTAS PÚLBICAS (sin token)
   // ============================================================
   router.post("/auth/register", controllers.authController.register);
   router.post("/auth/login",    controllers.authController.login);
@@ -38,8 +38,8 @@ export function buildRoutes(controllers: {
   router.patch("/auth/update-email", authMiddleware, controllers.authController.updateEmail);
   router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
   
-  // 🟢 RUTA: SUBIDA DE DOCUMENTOS (VERSIÓN FINAL CON COLUMNAS REALES)
-  // 🔓 ESTA SOLO LLEVA 1 CADENERO (authMiddleware) PORQUE EL FISIO AÚN NO ESTÁ APROBADO
+  // 🟢 RUTA: SUBIDA DE DOCUMENTOS
+  // 🔓 Solo lleva authMiddleware porque el fisio aún no está aprobado
   router.post(
     "/physiotherapists/upload-documents", 
     authMiddleware, 
@@ -51,21 +51,18 @@ export function buildRoutes(controllers: {
       try {
         const idUsuario = req.user.id; 
 
-        // 1. Buscamos al fisio usando su id_user
         const fisio: any = await PhysiotherapistModel.findOne({ where: { id_user: idUsuario } });
 
         if (!fisio) {
           return res.status(404).json({ message: "Fisioterapeuta no encontrado." });
         }
 
-        // 2. Revisamos que su estatus sea el correcto
         if (fisio.getDataValue('status') !== 'pending_profile') {
           return res.status(400).json({ 
             message: "Acción denegada. Tus documentos ya fueron recibidos o tu cuenta ya está validada." 
           });
         }
 
-        // 3. Extraemos los nombres de los archivos
         if (!req.files || !req.files['ineFront'] || !req.files['cedulaPdf']) {
            return res.status(400).json({ message: "Faltan documentos en la petición." });
         }
@@ -73,7 +70,6 @@ export function buildRoutes(controllers: {
         const nombreIne = req.files['ineFront'][0].filename;
         const nombreCedula = req.files['cedulaPdf'][0].filename;
 
-        // 4. ACTUALIZAMOS LA BD CON TUS COLUMNAS REALES
         await PhysiotherapistModel.update({
           ine_doc_url: nombreIne,            
           license_doc_url: nombreCedula,     
@@ -89,10 +85,12 @@ export function buildRoutes(controllers: {
     }
   );
 
-  // 🛡️ A PARTIR DE AQUÍ, TODAS LAS RUTAS OPERATIVAS LLEVAN LOS 2 CADENEROS:
-  // authMiddleware (Verifica que haya iniciado sesión) + requireApproval (Verifica que el admin ya lo aprobó)
+  // ============================================================
+  // RUTAS OPERATIVAS (authMiddleware + requireApproval)
+  // requireApproval ya permite pasar a pacientes automáticamente
+  // ============================================================
 
-  // 🪄 NUEVO: Ruta del Dashboard
+  // Dashboard
   router.get("/dashboard/stats", authMiddleware, requireApproval, controllers.dashboardController.getStats);
 
   // Pacientes
@@ -135,7 +133,6 @@ export function buildRoutes(controllers: {
   router.post("/notifications",                      authMiddleware, requireApproval, controllers.notificationController.create);
   router.get("/notifications/patient/:patientId",    authMiddleware, requireApproval, controllers.notificationController.getByPatient);
   router.patch("/notifications/:id/read",            authMiddleware, requireApproval, controllers.notificationController.markAsRead);
-
 
   return router;
 }
