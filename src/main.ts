@@ -137,10 +137,10 @@ async function bootstrap() {
     const trackingRepo = new SequelizeTrackingRepository();
     const routineRepo = new SequelizeRoutineRepository();
     const authRepo = new SequelizeAuthRepository();
-    const appointmentRepo   = new SequelizeAppointmentRepository();
-    const logbookRepo       = new SequelizeLogbookRepository();
-    const notificationRepo  = new SequelizeNotificationRepository();
-    
+    const appointmentRepo = new SequelizeAppointmentRepository();
+    const logbookRepo = new SequelizeLogbookRepository();
+    const notificationRepo = new SequelizeNotificationRepository();
+
     // 🪄 NUEVO: Instanciamos el repo del dashboard
     const dashboardRepo = new SequelizeDashboardRepository();
 
@@ -148,7 +148,7 @@ async function bootstrap() {
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
     // Se inyectan los repositorios necesarios a cada caso de uso.
     // ============================================================
-    
+
     // Casos de Uso: Pacientes
     const createPatient = new CreatePatientUseCase(patientRepo);
     const listPatients = new ListPatientsUseCase(patientRepo);
@@ -159,7 +159,7 @@ async function bootstrap() {
     // Casos de Uso: Fisioterapeutas
     const createPhysio = new CreatePhysiotherapistUseCase(physioRepo);
     const getPhysioById = new GetPhysiotherapistByIdUseCase(physioRepo);
-    const approvePhysio     = new ApprovePhysiotherapistUseCase(physioRepo);
+    const approvePhysio = new ApprovePhysiotherapistUseCase(physioRepo);
     const listPendingPhysio = new ListPendingPhysiotherapistsUseCase(physioRepo);
 
     // Casos de Uso: Ejercicios
@@ -183,22 +183,22 @@ async function bootstrap() {
 
     // Casos de Uso: Auth
     const registerPhysio = new RegisterPhysiotherapistUseCase(authRepo);
-    const loginPhysio    = new LoginPhysiotherapistUseCase(authRepo);
+    const loginPhysio = new LoginPhysiotherapistUseCase(authRepo);
     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
-    const updateEmail = new UpdateEmailUseCase(authRepo);         
-    const updatePassword = new UpdatePasswordUseCase(authRepo);   
+    const updateEmail = new UpdateEmailUseCase(authRepo);
+    const updatePassword = new UpdatePasswordUseCase(authRepo);
 
     // Citas
-    const createAppointment     = new CreateAppointmentUseCase(appointmentRepo);
+    const createAppointment = new CreateAppointmentUseCase(appointmentRepo);
     const getAppointmentsByPatient = new GetAppointmentsByPatientUseCase(appointmentRepo);
-    const updateAppointment     = new UpdateAppointmentUseCase(appointmentRepo);
+    const updateAppointment = new UpdateAppointmentUseCase(appointmentRepo);
 
     // Bitácora
-    const createLogbook         = new CreateLogbookUseCase(logbookRepo);
+    const createLogbook = new CreateLogbookUseCase(logbookRepo);
     const getLogbookByAppointment = new GetLogbookByAppointmentUseCase(logbookRepo);
 
     // Notificaciones
-    const createNotification    = new CreateNotificationUseCase(notificationRepo);
+    const createNotification = new CreateNotificationUseCase(notificationRepo);
     const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
     const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
 
@@ -210,22 +210,22 @@ async function bootstrap() {
     // Se agrupan los casos de uso por dominio en sus controladores.
     // ============================================================
     const patientController = new PatientController(
-      createPatient, 
-      listPatients, 
-      updatePatient, 
+      createPatient,
+      listPatients,
+      updatePatient,
       getPatientById
     );
 
     const physioController = new PhysiotherapistController(
       createPhysio,
       getPhysioById,
-      approvePhysio,      
-      listPendingPhysio,  
+      approvePhysio,
+      listPendingPhysio,
     );
 
     const exerciseController = new ExerciseController(
-      createExercise, 
-      listExercises, 
+      createExercise,
+      listExercises,
       getExerciseById
     );
 
@@ -252,8 +252,8 @@ async function bootstrap() {
       registerPhysio,
       loginPhysio,
       loginPatientEmail,
-      updateEmail,      
-      updatePassword    
+      updateEmail,
+      updatePassword
     );
 
     const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
@@ -282,7 +282,7 @@ async function bootstrap() {
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
     // ============================================================
     const app: Application = express();
-    
+
     app.use(cors()); // Habilitar peticiones desde Angular y App Móvil
     app.use(express.json()); // Habilitar lectura de JSON en el Body
 
@@ -296,8 +296,8 @@ async function bootstrap() {
       trackingController,
       routineController,
       authController,
-      appointmentController,   
-      logbookController,       
+      appointmentController,
+      logbookController,
       notificationController,
       dashboardController // 🪄 AÑADIDO AQUI
     }));
@@ -307,7 +307,7 @@ async function bootstrap() {
     // ============================================================
     const port = Number(process.env.PORT) || 3000;
     app.use(errorHandler);
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log("--------------------------------------------------");
       console.log(`📡 API DE ACTIVA ESCUCHANDO`);
       console.log(`🔗 URL LOCAL: http://localhost:${port}`);
