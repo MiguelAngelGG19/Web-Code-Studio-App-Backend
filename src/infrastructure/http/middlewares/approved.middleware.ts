@@ -7,17 +7,17 @@ export const requireApproval = (req: AuthRequest, res: Response, next: NextFunct
     return;
   }
 
-  // ✅ Los pacientes tienen su propio rol y no pasan por el flujo de aprobación
+  // Los pacientes no pasan por flujo de aprobacion de fisioterapeuta
   if (req.user.role === 'paciente') {
     next();
     return;
   }
 
-  // 🛡️ Para fisioterapeutas: verificar que estén aprobados por el admin
+  // Para fisioterapeutas: verificar aprobacion del admin
   if (req.user.status !== 'approved') {
     res.status(403).json({ 
       success: false, 
-      message: "Acceso denegado. Tu cuenta está en revisión por un administrador. Aún no puedes gestionar pacientes ni citas." 
+      message: "Acceso denegado. Tu cuenta esta en revision por un administrador. Aun no puedes gestionar pacientes ni citas." 
     });
     return;
   }
