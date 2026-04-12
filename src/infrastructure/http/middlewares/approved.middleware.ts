@@ -1,26 +1,28 @@
 import { Response, NextFunction } from "express";
-import { AuthRequest } from "./auth.middleware";
+import { AuthRequest } from "./auth.middleware"; // Importamos la interfaz del otro archivo
 
 export const requireApproval = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  // Verificamos que el usuario exista en la petición (esto lo pone el authMiddleware)
   if (!req.user) {
     res.status(401).json({ success: false, message: "No autorizado." });
     return;
   }
 
-  // Los pacientes no pasan por flujo de aprobacion de fisioterapeuta
-  if (req.user.role === 'paciente') {
+  // 🟢 Los pacientes no requieren aprobación de admin — pasan directo
+  if (req.user.role === 'patient') {
     next();
     return;
   }
 
-  // Para fisioterapeutas: verificar aprobacion del admin
+  // 🛡️ EL CANDADO DE TITANIO: Si no está aprobado, lo rebotamos (solo aplica a fisioterapeutas)
   if (req.user.status !== 'approved') {
     res.status(403).json({ 
       success: false, 
-      message: "Acceso denegado. Tu cuenta esta en revision por un administrador. Aun no puedes gestionar pacientes ni citas." 
+      message: "Acceso denegado. Tu cuenta está en revisión por un administrador. Aún no puedes gestionar pacientes ni citas." 
     });
     return;
   }
 
+  // Si su estatus es 'approved', le abrimos la puerta para que siga
   next();
 };
