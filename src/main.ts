@@ -9,6 +9,7 @@
 import express, { Application } from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
+import path from "path";
 
 // Auth
 import { SequelizeAuthRepository } from "./infrastructure/persistence/repositories/SequelizeAuthRepository";
@@ -30,6 +31,7 @@ import {
   sequelize,
   RoutineTemplateModel,
   RoutineTemplateExerciseModel,
+  PatientMedicalDocumentModel,
 } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
 import { errorHandler } from "./infrastructure/http/middlewares/error.middleware";
@@ -109,6 +111,7 @@ import { NotificationController } from "./infrastructure/http/controllers/notifi
 
 // 🪄 NUEVO: Controlador del Dashboard
 import { DashboardController } from "./infrastructure/http/controllers/dashboard.controller";
+import { DocumentController } from "./infrastructure/http/controllers/document.controller";
 
 // Cargar variables de entorno (.env)
 dotenv.config();
@@ -127,6 +130,7 @@ async function bootstrap() {
     console.log("✅ Conexión a MySQL (Sequelize) establecida con éxito.");
     await RoutineTemplateModel.sync();
     await RoutineTemplateExerciseModel.sync();
+    await PatientMedicalDocumentModel.sync();
 
     // ============================================================
     // FASE 2: INSTANCIACIÓN DE REPOSITORIOS (INFRAESTRUCTURA)
@@ -167,9 +171,6 @@ async function bootstrap() {
     const listExercises = new ListExercisesUseCase(exerciseRepo);
     const getExerciseById = new GetExerciseByIdUseCase(exerciseRepo);
 
-    // Casos de Uso: Seguimiento
-    const registerPain = new RegisterPainLevelUseCase(trackingRepo);
-
     // Casos de Uso: Rutinas
     const createRoutine = new CreateRoutineUseCase(routineRepo);
     const getPatientRoutine = new GetPatientRoutineUseCase(routineRepo);
@@ -201,6 +202,9 @@ async function bootstrap() {
     const createNotification = new CreateNotificationUseCase(notificationRepo);
     const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
     const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
+
+    // Seguimiento (después de notificaciones: alertas por dolor alto)
+    const registerPain = new RegisterPainLevelUseCase(trackingRepo, routineRepo, createNotification);
 
     // 🪄 NUEVO: Instanciamos el caso de uso del dashboard
     const getDashboardStats = new GetDashboardStatsUseCase(dashboardRepo);
@@ -277,6 +281,7 @@ async function bootstrap() {
 
     // 🪄 NUEVO: Instanciamos el controlador del dashboard
     const dashboardController = new DashboardController(getDashboardStats);
+    const documentController = new DocumentController();
 
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
@@ -285,6 +290,7 @@ async function bootstrap() {
 
     app.use(cors()); // Habilitar peticiones desde Angular y App Móvil
     app.use(express.json()); // Habilitar lectura de JSON en el Body
+    app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
     // ============================================================
     // FASE 6: REGISTRO DE RUTAS
@@ -299,7 +305,8 @@ async function bootstrap() {
       appointmentController,
       logbookController,
       notificationController,
-      dashboardController // 🪄 AÑADIDO AQUI
+      dashboardController, // 🪄 AÑADIDO AQUI
+      documentController
     }));
 
     // ============================================================

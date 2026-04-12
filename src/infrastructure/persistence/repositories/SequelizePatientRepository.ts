@@ -82,6 +82,9 @@ export class SequelizePatientRepository implements PatientRepository {
     const user = await UserModel.findOne({ where: { email } });
     if (!user) return null;
     const patient = await PatientModel.findOne({ where: { id_user: (user as any).id_user } });
-    return patient ? patient.get({ plain: true }) : null;
+    if (!patient) return null;
+    const plain = patient.get({ plain: true }) as any;
+    plain.email = email;
+    return plain;
   }
 }

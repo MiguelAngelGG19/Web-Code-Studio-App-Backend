@@ -1,5 +1,4 @@
-import { CreateTrackingDTO } from "../../dtos/tracking.dto";
-
 export interface TrackingRepository {
-  create(data: CreateTrackingDTO): Promise<any>;
+  /** Fila lista para Sequelize `TrackingModel` */
+  create(data: Record<string, unknown>): Promise<any>;
 }
