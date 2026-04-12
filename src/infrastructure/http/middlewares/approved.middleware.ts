@@ -8,7 +8,13 @@ export const requireApproval = (req: AuthRequest, res: Response, next: NextFunct
     return;
   }
 
-  // 🛡️ EL CANDADO DE TITANIO: Si no está aprobado, lo rebotamos
+  // ✅ Los pacientes pasan directo — el campo 'status' es exclusivo de fisioterapeutas
+  if (req.user.role === 'patient') {
+    next();
+    return;
+  }
+
+  // 🛡️ EL CANDADO DE TITANIO: Si el fisio no está aprobado, lo rebotamos
   if (req.user.status !== 'approved') {
     res.status(403).json({ 
       success: false, 
