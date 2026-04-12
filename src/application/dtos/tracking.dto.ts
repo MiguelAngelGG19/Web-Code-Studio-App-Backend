@@ -6,4 +6,5 @@ export type CreateTrackingDTO = {
   intraObservations?: string;
   alert?: number; // 0 = Falso, 1 = Verdadero
   routineId: number;
+  exerciseId?: number;
 };

@@ -187,6 +187,16 @@ export const NotificationModel = sequelize.define("Notification", {
   id_physio: { type: DataTypes.INTEGER, allowNull: true }
 }, { tableName: "notification" });
 
+// --- PATIENT MEDICAL DOCUMENT (PDFs subidos desde la app del paciente) ---
+export const PatientMedicalDocumentModel = sequelize.define("PatientMedicalDocument", {
+  id_document: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  id_patient: { type: DataTypes.INTEGER, allowNull: false },
+  name: { type: DataTypes.STRING, allowNull: false },
+  doc_type: { type: DataTypes.STRING, allowNull: true },
+  file_url: { type: DataTypes.TEXT, allowNull: false },
+  created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, { tableName: "patient_medical_document" });
+
 // ============================================================
 // 3. ASOCIACIONES
 // ============================================================
@@ -269,3 +279,6 @@ PatientModel.hasMany(NotificationModel, { foreignKey: "id_patient", as: "notific
 PhysiotherapistModel.hasMany(NotificationModel, { foreignKey: "id_physio", as: "notifications" });
 NotificationModel.belongsTo(PatientModel, { foreignKey: "id_patient" });
 NotificationModel.belongsTo(PhysiotherapistModel, { foreignKey: "id_physio" });
+
+PatientModel.hasMany(PatientMedicalDocumentModel, { foreignKey: "id_patient", as: "medicalDocuments" });
+PatientMedicalDocumentModel.belongsTo(PatientModel, { foreignKey: "id_patient" });

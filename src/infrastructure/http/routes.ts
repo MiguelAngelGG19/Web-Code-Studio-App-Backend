@@ -3,6 +3,7 @@ import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware"; // se añadio para los pdf
 import { requireApproval } from "./middlewares/approved.middleware";
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
+import { uploadPatientMedicalPdf } from "./middlewares/upload-patient-medical.middleware";
 
 export function buildRoutes(controllers: {
   patientController:    any;
@@ -15,6 +16,7 @@ export function buildRoutes(controllers: {
   logbookController:       any;
   notificationController:  any;
   dashboardController:     any;
+  documentController:      any;
 }) {
   const router = Router();
 
@@ -133,6 +135,17 @@ export function buildRoutes(controllers: {
   router.post("/notifications",                      authMiddleware, requireApproval, controllers.notificationController.create);
   router.get("/notifications/patient/:patientId",    authMiddleware, requireApproval, controllers.notificationController.getByPatient);
   router.patch("/notifications/:id/read",            authMiddleware, requireApproval, controllers.notificationController.markAsRead);
+
+  // Documentos médicos del paciente (app móvil / fisio con permiso)
+  router.get("/documents", authMiddleware, requireApproval, controllers.documentController.list);
+  router.post(
+    "/documents",
+    authMiddleware,
+    requireApproval,
+    uploadPatientMedicalPdf.single("file"),
+    controllers.documentController.create
+  );
+  router.delete("/documents/:id", authMiddleware, requireApproval, controllers.documentController.remove);
 
   return router;
 }

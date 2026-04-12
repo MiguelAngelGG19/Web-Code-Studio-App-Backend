@@ -44,7 +44,9 @@ export const TrackingSchema = z.object({
   postObservations: z.string().optional(),
   intraObservations: z.string().optional(),
   alert: z.number().int().min(0).max(1).optional(),
-  routineId: z.number().int().positive("El ID de la rutina es obligatorio")
+  routineId: z.number().int().positive("El ID de la rutina es obligatorio"),
+  /** Si no se envía, se usa el primer ejercicio de la rutina */
+  exerciseId: z.number().int().positive().optional()
 });
 
 // 5. Reglas para la Rutina

@@ -195,6 +195,26 @@ export class PatientController {
         return;
       }
 
+      const u = (req as any).user as { id?: number; role?: string; id_physio?: number } | undefined;
+
+      if (u?.role === "patient" && Number(u.id) !== patientId) {
+        res.status(403).json({ success: false, message: "No puedes consultar expedientes de otros pacientes." });
+        return;
+      }
+
+      if (u?.role === "physio") {
+        const row = await PatientModel.findByPk(patientId);
+        if (!row) {
+          res.status(404).json({ success: false, message: "Expediente de paciente no encontrado." });
+          return;
+        }
+        const idPhysio = u.id_physio;
+        if (idPhysio == null || row.getDataValue("id_physio") !== idPhysio) {
+          res.status(403).json({ success: false, message: "No tienes permiso para ver este expediente." });
+          return;
+        }
+      }
+
       const patient = await this.getPatientById.execute(patientId);
 
       if (!patient) {
