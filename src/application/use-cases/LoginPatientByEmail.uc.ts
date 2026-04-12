@@ -21,8 +21,10 @@ export class LoginPatientByEmailUseCase {
       physiotherapistId: raw.id_physio   ?? raw.physiotherapistId ?? null,
     };
 
+    // IMPORTANTE: role debe ser "patient" (inglés) para que requireApproval
+    // lo reconozca y deje pasar al paciente sin exigir status de fisioterapeuta.
     const token = jwt.sign(
-      { id: patient.id, email: patient.email, role: "paciente" },
+      { id: patient.id, email: patient.email, role: "patient" },
       process.env.JWT_SECRET || "secret_dev",
       { expiresIn: "8h" }
     );
