@@ -1,18 +1,8 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import type { Subscription } from 'stripe';
 import { CreateCheckoutSessionUseCase } from '../../../application/use-cases/CreateCheckoutSession.uc';
 import { PhysiotherapistModel } from '../../persistence/sequelize/client';
 
-/**
- * **************************************************************************
- * CONTROLADOR: SubscriptionController
- * DESCRIPCIÓN: Maneja los endpoints de suscripciones con Stripe.
- *
- *   POST /api/suscripciones/checkout  → Genera URL de pago de Stripe
- *   POST /api/suscripciones/webhook   → Stripe llama aquí al confirmar pago
- * **************************************************************************
- */
 export class SubscriptionController {
   constructor(private createCheckoutSession: CreateCheckoutSessionUseCase) {}
 
@@ -34,7 +24,6 @@ export class SubscriptionController {
   };
 
   // POST /api/suscripciones/webhook
-  // ⚠️ SIN authMiddleware — Stripe llama directamente a este endpoint.
   webhook = async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'];
 
@@ -56,7 +45,7 @@ export class SubscriptionController {
         event.type === 'customer.subscription.created' ||
         event.type === 'customer.subscription.updated'
       ) {
-        const subActiva = event.data.object as unknown as Subscription;
+        const subActiva = event.data.object as any;
         const physioId  = subActiva.metadata?.physioId;
 
         if (physioId) {
@@ -70,7 +59,7 @@ export class SubscriptionController {
 
       // Suscripción cancelada o vencida
       if (event.type === 'customer.subscription.deleted') {
-        const subCancelada = event.data.object as unknown as Subscription;
+        const subCancelada = event.data.object as any;
         const physioId     = subCancelada.metadata?.physioId;
 
         if (physioId) {
