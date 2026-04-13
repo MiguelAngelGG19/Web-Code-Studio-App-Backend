@@ -1,15 +1,5 @@
 import Stripe from 'stripe';
 
-/**
- * **************************************************************************
- * CASO DE USO: CreateCheckoutSession
- * DESCRIPCIÓN: Crea una sesión de pago segura en Stripe para suscripciones.
- * El usuario es redirigido a la página de Stripe (nunca pagamos
- * desde el frontend propio).
- * **************************************************************************
- */
-
-// Tipos válidos de plan — esto evita el error rojo de TypeScript
 type PlanId = 'basico' | 'ilimitado';
 
 export class CreateCheckoutSessionUseCase {
@@ -21,7 +11,6 @@ export class CreateCheckoutSessionUseCase {
       ilimitado: process.env.STRIPE_PRICE_ILIMITADO!
     };
 
-    // Validar que el planId recibido sea uno de los planes válidos
     if (!Object.keys(prices).includes(planId)) {
       throw new Error(`Plan no válido: "${planId}". Use "basico" o "ilimitado".`);
     }
@@ -30,12 +19,21 @@ export class CreateCheckoutSessionUseCase {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: prices[planId as PlanId], quantity: 1 }],
-      
-      // 🪄 CORRECCIÓN: Rutas exactas que tu Frontend está esperando
       success_url: `${process.env.FRONTEND_URL}/dashboard/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${process.env.FRONTEND_URL}/dashboard/subscription?checkout=cancel`,
       
-      metadata: { physioId }
+      // 🪄 FIX 1: Guardamos los datos en el recibo de compra (Para leerlos al regresar)
+      metadata: { 
+        physioId: String(physioId),
+        planId: String(planId) 
+      },
+      // 🪄 FIX 2: Obligamos a Stripe a guardarlos en la Suscripción (Para el Portal y Webhooks futuros)
+      subscription_data: {
+        metadata: {
+          physioId: String(physioId),
+          planId: String(planId) 
+        }
+      }
     });
 
     return session.url!;
