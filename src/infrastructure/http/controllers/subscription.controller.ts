@@ -10,9 +10,7 @@ import Stripe from "stripe";
 import { CreateCheckoutSessionUseCase } from "../../../application/use-cases/CreateCheckoutSession.uc";
 import { PhysiotherapistModel } from "../../persistence/sequelize/client";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-03-31.basil",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 // Definición de planes con sus Price IDs de Stripe
 const PLANES: Record<string, {
@@ -352,7 +350,7 @@ export class SubscriptionController {
         req.body,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET as string
-      );
+      ) as Stripe.Event;
     } catch (err: any) {
       console.error("❌ Webhook signature inválida:", err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);
