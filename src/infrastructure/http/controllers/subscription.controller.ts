@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
+import type { Subscription } from 'stripe';
 import { CreateCheckoutSessionUseCase } from '../../../application/use-cases/CreateCheckoutSession.uc';
 import { PhysiotherapistModel } from '../../persistence/sequelize/client';
 
@@ -55,7 +56,7 @@ export class SubscriptionController {
         event.type === 'customer.subscription.created' ||
         event.type === 'customer.subscription.updated'
       ) {
-        const subActiva = event.data.object as Stripe.Subscription;
+        const subActiva = event.data.object as unknown as Subscription;
         const physioId  = subActiva.metadata?.physioId;
 
         if (physioId) {
@@ -69,7 +70,7 @@ export class SubscriptionController {
 
       // Suscripción cancelada o vencida
       if (event.type === 'customer.subscription.deleted') {
-        const subCancelada = event.data.object as Stripe.Subscription;
+        const subCancelada = event.data.object as unknown as Subscription;
         const physioId     = subCancelada.metadata?.physioId;
 
         if (physioId) {
