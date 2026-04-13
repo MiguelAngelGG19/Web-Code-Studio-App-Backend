@@ -12,7 +12,6 @@ import { PhysiotherapistModel } from "../../persistence/sequelize/client";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-// Definición de planes con sus Price IDs de Stripe
 const PLANES: Record<string, {
   id_plan: number;
   name: string;
@@ -60,25 +59,16 @@ export class SubscriptionController {
     private readonly createCheckoutSession: CreateCheckoutSessionUseCase
   ) {}
 
-  // ─────────────────────────────────────────────────────────────
-  // GET /api/publico/planes  — SIN autenticación
-  // ─────────────────────────────────────────────────────────────
   getPublicPlans = async (_req: Request, res: Response): Promise<void> => {
     const planes = Object.values(PLANES).map(({ price_id: _p, ...rest }) => rest);
     res.status(200).json({ data: planes });
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // GET /api/suscripciones/planes  — CON autenticación
-  // ─────────────────────────────────────────────────────────────
   getPlans = async (_req: Request, res: Response): Promise<void> => {
     const planes = Object.values(PLANES).map(({ price_id: _p, ...rest }) => rest);
     res.status(200).json({ data: planes });
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // GET /api/suscripciones/mi-plan
-  // ─────────────────────────────────────────────────────────────
   getMiPlan = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -100,7 +90,7 @@ export class SubscriptionController {
       if (stripeSubId && planStatus === "active") {
         try {
           const subscription = await stripe.subscriptions.retrieve(stripeSubId);
-          const priceId = subscription.items.data[0]?.price?.id;
+          const priceId = (subscription as any).items.data[0]?.price?.id;
           const planEntry = Object.entries(PLANES).find(([, p]) => p.price_id === priceId);
           if (planEntry) {
             const [, plan] = planEntry;
@@ -130,9 +120,6 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /api/suscripciones/checkout
-  // ─────────────────────────────────────────────────────────────
   checkout = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -186,9 +173,6 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // GET /api/suscripciones/confirmar-checkout
-  // ─────────────────────────────────────────────────────────────
   confirmarCheckout = async (req: Request, res: Response): Promise<void> => {
     try {
       const { session_id } = req.query;
@@ -198,7 +182,7 @@ export class SubscriptionController {
         return;
       }
 
-      const session = await stripe.checkout.sessions.retrieve(session_id as string);
+      const session: any = await stripe.checkout.sessions.retrieve(session_id as string);
       const physioId = session.metadata?.physioId;
       const customerId = session.customer as string;
       const subscriptionId = session.subscription as string;
@@ -223,9 +207,6 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /api/suscripciones/cambiar-plan
-  // ─────────────────────────────────────────────────────────────
   cambiarPlan = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -253,7 +234,7 @@ export class SubscriptionController {
         return;
       }
 
-      const subscription = await stripe.subscriptions.retrieve(stripeSubId);
+      const subscription: any = await stripe.subscriptions.retrieve(stripeSubId);
       const itemId = subscription.items.data[0]?.id;
 
       await stripe.subscriptions.update(stripeSubId, {
@@ -271,9 +252,6 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // DELETE /api/suscripciones/cambio-pendiente
-  // ─────────────────────────────────────────────────────────────
   cancelarCambioPendiente = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -303,9 +281,6 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /api/suscripciones/portal
-  // ─────────────────────────────────────────────────────────────
   abrirPortal = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -338,19 +313,16 @@ export class SubscriptionController {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /api/suscripciones/webhook  — SIN autenticación (body raw)
-  // ─────────────────────────────────────────────────────────────
   webhook = async (req: Request, res: Response): Promise<void> => {
     const sig = req.headers["stripe-signature"] as string;
-    let event: Stripe.Event;
+    let event: any;
 
     try {
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET as string
-      ) as Stripe.Event;
+      );
     } catch (err: any) {
       console.error("❌ Webhook signature inválida:", err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);
@@ -360,7 +332,7 @@ export class SubscriptionController {
     try {
       switch (event.type) {
         case "checkout.session.completed": {
-          const session = event.data.object as Stripe.Checkout.Session;
+          const session: any = event.data.object;
           const physioId = session.metadata?.physioId;
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
@@ -381,7 +353,7 @@ export class SubscriptionController {
 
         case "customer.subscription.deleted":
         case "customer.subscription.paused": {
-          const subscription = event.data.object as Stripe.Subscription;
+          const subscription: any = event.data.object;
           const customerId = subscription.customer as string;
 
           await PhysiotherapistModel.update(
@@ -393,7 +365,7 @@ export class SubscriptionController {
         }
 
         case "invoice.payment_failed": {
-          const invoice = event.data.object as Stripe.Invoice;
+          const invoice: any = event.data.object;
           const customerId = invoice.customer as string;
 
           await PhysiotherapistModel.update(
