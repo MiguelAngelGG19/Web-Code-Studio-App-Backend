@@ -3,9 +3,10 @@ import express from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware";
 import { requireApproval } from "./middlewares/approved.middleware";
-import { requireActivePlan } from "./middlewares/active-plan.middleware"; // 🔒 NUEVO
+import { requireActivePlan } from "./middlewares/active-plan.middleware"; 
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
 import { uploadPatientMedicalPdf } from "./middlewares/upload-patient-medical.middleware";
+import { checkLimit } from "./middlewares/limit.middleware"; // 🛡️ NUESTRO CADENERO
 
 export function buildRoutes(controllers: {
   patientController:       any;
@@ -29,6 +30,7 @@ export function buildRoutes(controllers: {
   router.post("/auth/register",      controllers.authController.register);
   router.post("/auth/login",         controllers.authController.login);
   router.post("/auth/login-patient", controllers.authController.loginPatient);
+  router.get("/publico/planes",      controllers.subscriptionController.listaPlanes);
 
   // ============================================================
   // RUTAS PROTEGIDAS — Solo JWT (aprobación / perfil / plan)
@@ -82,7 +84,6 @@ export function buildRoutes(controllers: {
 
   // ============================================================
   // 💳 SUSCRIPCIONES (Stripe)
-  // El webhook va ANTES del express.json() global, necesita body RAW
   // ============================================================
   router.post(
     "/suscripciones/webhook",
@@ -90,13 +91,17 @@ export function buildRoutes(controllers: {
     controllers.subscriptionController.webhook
   );
 
-  // Checkout: requiere JWT pero NO requireActivePlan (el fisio aún no tiene plan)
+  router.get("/suscripciones/mi-plan", authMiddleware, controllers.subscriptionController.miPlan);
+  router.get("/suscripciones/planes", authMiddleware, controllers.subscriptionController.listaPlanes);
   router.post("/suscripciones/checkout", authMiddleware, controllers.subscriptionController.checkout);
+  router.get("/suscripciones/confirmar-checkout", authMiddleware, controllers.subscriptionController.confirmarCheckout);
+  router.post("/suscripciones/portal", authMiddleware, controllers.subscriptionController.portal);
+  router.post("/suscripciones/cambiar-plan", authMiddleware, controllers.subscriptionController.cambiarPlan);
+  router.delete("/suscripciones/cambio-pendiente", authMiddleware, controllers.subscriptionController.cancelarCambio);
 
   // ============================================================
   // RUTAS OPERATIVAS
-  // Cadena: authMiddleware → requireApproval → requireActivePlan → controller
-  // 🔒 requireActivePlan bloquea a fisios sin suscripción activa
+  // Cadena: authMiddleware → requireApproval → requireActivePlan → checkLimit (Si aplica) → controller
   // ============================================================
 
   // Dashboard
@@ -105,22 +110,22 @@ export function buildRoutes(controllers: {
     controllers.dashboardController.getStats
   );
 
-  // Pacientes
-  router.post("/patients",    authMiddleware, requireApproval, requireActivePlan, controllers.patientController.create);
+  // 🛡️ Pacientes (Se aplica checkLimit de 'patient')
+  router.post("/patients",    authMiddleware, requireApproval, requireActivePlan, checkLimit('patient'), controllers.patientController.create);
   router.get("/patients",     authMiddleware, requireApproval, requireActivePlan, controllers.patientController.list);
   router.put("/patients/:id", authMiddleware, requireApproval, requireActivePlan, controllers.patientController.update);
   router.get("/patients/:id", authMiddleware, requireApproval, requireActivePlan, controllers.patientController.getById);
 
-  // Ejercicios
+  // Ejercicios (Sin límite explícito)
   router.post("/exercises",     authMiddleware, requireApproval, requireActivePlan, controllers.exerciseController.create);
   router.get("/exercises",      authMiddleware, requireApproval, requireActivePlan, controllers.exerciseController.list);
   router.get("/exercises/:id",  authMiddleware, requireApproval, requireActivePlan, controllers.exerciseController.getById);
 
-  // Seguimiento
-  router.post("/tracking", authMiddleware, requireApproval, requireActivePlan, controllers.trackingController.create);
+  // 🛡️ Seguimiento (Se aplica checkLimit de 'tracking')
+  router.post("/tracking", authMiddleware, requireApproval, requireActivePlan, checkLimit('tracking'), controllers.trackingController.create);
 
-  // Rutinas
-  router.post("/routines",                           authMiddleware, requireActivePlan, controllers.routineController.create);
+  // 🛡️ Rutinas (Se aplica checkLimit de 'routine')
+  router.post("/routines",                           authMiddleware, requireActivePlan, checkLimit('routine'), controllers.routineController.create);
   router.post("/routines/templates",                 authMiddleware, requireActivePlan, controllers.routineController.createTemplate);
   router.put("/routines/templates/:id",              authMiddleware, requireActivePlan, controllers.routineController.updateTemplate);
   router.get("/routines/templates",                  authMiddleware, requireActivePlan, controllers.routineController.listTemplates);
@@ -131,14 +136,14 @@ export function buildRoutes(controllers: {
   router.get("/routines/:id",                        authMiddleware, requireActivePlan, controllers.routineController.getById);
   router.put("/routines/:id",                        authMiddleware, requireActivePlan, controllers.routineController.update);
 
-  // Citas
-  router.post("/appointments",                   authMiddleware, requireApproval, requireActivePlan, controllers.appointmentController.create);
+  // 🛡️ Citas (Se aplica checkLimit de 'appointment')
+  router.post("/appointments",                 authMiddleware, requireApproval, requireActivePlan, checkLimit('appointment'), controllers.appointmentController.create);
   router.get("/appointments/patient/:patientId", authMiddleware, requireApproval, requireActivePlan, controllers.appointmentController.getByPatient);
   router.put("/appointments/:id",                authMiddleware, requireApproval, requireActivePlan, controllers.appointmentController.update);
   router.get("/appointments",                    authMiddleware, requireApproval, requireActivePlan, controllers.appointmentController.getMyPhysioAppointments);
 
-  // Bitácora
-  router.post("/logbook",                           authMiddleware, requireApproval, requireActivePlan, controllers.logbookController.create);
+  // 🛡️ Bitácora (Se aplica checkLimit de 'logbook')
+  router.post("/logbook",                          authMiddleware, requireApproval, requireActivePlan, checkLimit('logbook'), controllers.logbookController.create);
   router.get("/logbook/appointment/:appointmentId", authMiddleware, requireApproval, requireActivePlan, controllers.logbookController.getByAppointment);
 
   // Notificaciones

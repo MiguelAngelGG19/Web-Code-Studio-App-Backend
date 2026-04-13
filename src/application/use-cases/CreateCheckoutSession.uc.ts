@@ -4,8 +4,8 @@ import Stripe from 'stripe';
  * **************************************************************************
  * CASO DE USO: CreateCheckoutSession
  * DESCRIPCIÓN: Crea una sesión de pago segura en Stripe para suscripciones.
- *              El usuario es redirigido a la página de Stripe (nunca pagamos
- *              desde el frontend propio).
+ * El usuario es redirigido a la página de Stripe (nunca pagamos
+ * desde el frontend propio).
  * **************************************************************************
  */
 
@@ -30,8 +30,11 @@ export class CreateCheckoutSessionUseCase {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: prices[planId as PlanId], quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL}/dashboard/planes?status=success`,
-      cancel_url:  `${process.env.FRONTEND_URL}/dashboard/planes?status=cancel`,
+      
+      // 🪄 CORRECCIÓN: Rutas exactas que tu Frontend está esperando
+      success_url: `${process.env.FRONTEND_URL}/dashboard/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${process.env.FRONTEND_URL}/dashboard/subscription?checkout=cancel`,
+      
       metadata: { physioId }
     });
 
