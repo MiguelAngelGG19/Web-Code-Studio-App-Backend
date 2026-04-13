@@ -62,7 +62,11 @@ export const PhysiotherapistModel = sequelize.define("Physiotherapist", {
   status: { type: DataTypes.ENUM("pending_profile", "pending_approval", "approved", "rejected"), defaultValue: "pending_profile" },
   created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   id_user: { type: DataTypes.INTEGER, allowNull: false, unique: true },
-  id_admin: { type: DataTypes.INTEGER, allowNull: true }
+  id_admin: { type: DataTypes.INTEGER, allowNull: true },
+  // 💳 STRIPE: Columnas para manejo de suscripciones
+  stripe_customer_id: { type: DataTypes.STRING, allowNull: true },
+  stripe_subscription_id: { type: DataTypes.STRING, allowNull: true },
+  plan_status: { type: DataTypes.ENUM("active", "inactive", "past_due"), defaultValue: "inactive" }
 }, { tableName: "physiotherapist" });
 
 // --- PATIENT ---
