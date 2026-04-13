@@ -1,4 +1,5 @@
 import { Router } from "express";
+import express from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware"; // se añadio para los pdf
 import { requireApproval } from "./middlewares/approved.middleware";
@@ -6,17 +7,18 @@ import { PhysiotherapistModel } from "../persistence/sequelize/client";
 import { uploadPatientMedicalPdf } from "./middlewares/upload-patient-medical.middleware";
 
 export function buildRoutes(controllers: {
-  patientController:    any;
-  physioController:     any;
-  exerciseController:   any;
-  trackingController:   any;
-  routineController:    any;
-  authController:       any;
+  patientController:       any;
+  physioController:        any;
+  exerciseController:      any;
+  trackingController:      any;
+  routineController:       any;
+  authController:          any;
   appointmentController:   any;
   logbookController:       any;
   notificationController:  any;
   dashboardController:     any;
   documentController:      any;
+  subscriptionController:  any; // 💳 NUEVO: Stripe
 }) {
   const router = Router();
 
@@ -85,6 +87,25 @@ export function buildRoutes(controllers: {
         res.status(500).json({ message: error.message });
       }
     }
+  );
+
+  // ============================================================
+  // 💳 RUTAS DE SUSCRIPCIONES (Stripe)
+  // ============================================================
+
+  // ⚠️ El webhook de Stripe necesita el body RAW (sin parsear como JSON)
+  // Por eso usa express.raw() en lugar del express.json() global
+  router.post(
+    "/suscripciones/webhook",
+    express.raw({ type: 'application/json' }),
+    controllers.subscriptionController.webhook
+  );
+
+  // Checkout: protegido con JWT (el fisio debe estar logueado)
+  router.post(
+    "/suscripciones/checkout",
+    authMiddleware,
+    controllers.subscriptionController.checkout
   );
 
   // ============================================================
