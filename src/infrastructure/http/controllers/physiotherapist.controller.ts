@@ -115,8 +115,8 @@ export class PhysiotherapistController {
       return;
     }
 
-    const result = await this.approveUseCase.execute(id, action);
-    res.status(200).json(result);
+    const result = await this.approveUseCase.execute(id, action as "approved" | "rejected");
+    res.status(200).json({ success: true, ...result });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
@@ -126,10 +126,10 @@ export class PhysiotherapistController {
 
 listPending = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await this.listPendingUseCase.execute();
-    res.status(200).json(result);
+    const rows = await this.listPendingUseCase.execute();
+    res.status(200).json({ success: true, rows });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

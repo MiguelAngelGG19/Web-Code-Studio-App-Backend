@@ -7,7 +7,10 @@
  */
 
 import express, { Application } from "express";
+import path from "path";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import * as dotenv from "dotenv";
 
 // Auth
@@ -19,6 +22,7 @@ import { LoginPatientWithGoogleUseCase } from "./application/use-cases/LoginPati
 import { ApprovePhysiotherapistUseCase } from "./application/use-cases/ApprovePhysiotherapist.uc";
 import { ListPendingPhysiotherapistsUseCase } from "./application/use-cases/ListPendingPhysiotherapists.uc";
 import { LoginPatientByEmailUseCase } from "./application/use-cases/LoginPatientByEmail.uc";
+import { LoginAdminUseCase } from "./application/use-cases/LoginAdmin.uc";
 
 // Repositorios nuevos
 import { SequelizeAppointmentRepository } from "./infrastructure/persistence/repositories/SequelizeAppointmentRepository";
@@ -28,8 +32,13 @@ import { SequelizeNotificationRepository } from "./infrastructure/persistence/re
 // 1. INFRAESTRUCTURA CORE
 import {
   sequelize,
+  UserModel,
+  AdminModel,
+  PhysiotherapistModel,
+  ExerciseModel,
   RoutineTemplateModel,
   RoutineTemplateExerciseModel,
+  TrackingModel,
 } from "./infrastructure/persistence/sequelize/client";
 import { buildRoutes } from "./infrastructure/http/routes";
 import { errorHandler } from "./infrastructure/http/middlewares/error.middleware";
@@ -109,6 +118,8 @@ import { NotificationController } from "./infrastructure/http/controllers/notifi
 
 // 🪄 NUEVO: Controlador del Dashboard
 import { DashboardController } from "./infrastructure/http/controllers/dashboard.controller";
+import { AdminController } from "./infrastructure/http/controllers/admin.controller";
+import { GetAdminOverviewUseCase } from "./application/use-cases/GetAdminOverview.uc";
 
 // Cargar variables de entorno (.env)
 dotenv.config();
@@ -118,6 +129,11 @@ dotenv.config();
  */
 async function bootstrap() {
   try {
+    if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET?.trim()) {
+      console.error("❌ JWT_SECRET es obligatorio en producción.");
+      process.exit(1);
+    }
+
     console.log("🚀 Iniciando servidor Activa...");
 
     // ============================================================
@@ -125,8 +141,26 @@ async function bootstrap() {
     // ============================================================
     await sequelize.authenticate();
     console.log("✅ Conexión a MySQL (Sequelize) establecida con éxito.");
+    // Orden de sync: las FK de routine_template → physiotherapist y
+    // routine_template_exercise → exercise / routine_template exigen que existan primero.
+    await UserModel.sync();
+    await AdminModel.sync();
+    await PhysiotherapistModel.sync();
+    await ExerciseModel.sync();
+    try {
+      await sequelize.query("ALTER TABLE `exercise` MODIFY `video_url` TEXT NULL;");
+    } catch (_) {
+      /* columna ya nullable o permisos */
+    }
     await RoutineTemplateModel.sync();
     await RoutineTemplateExerciseModel.sync();
+    // Hacemos id_exercise nullable directamente en MySQL (ignoramos si ya está hecho)
+    try {
+      await sequelize.query("ALTER TABLE `tracking` DROP FOREIGN KEY `tracking_ibfk_5`;");
+    } catch (_) { /* Ya no existe, ignorar */ }
+    try {
+      await sequelize.query("ALTER TABLE `tracking` MODIFY `id_exercise` INT NULL;");
+    } catch (_) { /* Ya es nullable, ignorar */ }
 
     // ============================================================
     // FASE 2: INSTANCIACIÓN DE REPOSITORIOS (INFRAESTRUCTURA)
@@ -187,6 +221,7 @@ async function bootstrap() {
     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
     const updateEmail = new UpdateEmailUseCase(authRepo);
     const updatePassword = new UpdatePasswordUseCase(authRepo);
+    const loginAdmin = new LoginAdminUseCase();
 
     // Citas
     const createAppointment = new CreateAppointmentUseCase(appointmentRepo);
@@ -204,6 +239,7 @@ async function bootstrap() {
 
     // 🪄 NUEVO: Instanciamos el caso de uso del dashboard
     const getDashboardStats = new GetDashboardStatsUseCase(dashboardRepo);
+    const getAdminOverview = new GetAdminOverviewUseCase();
 
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
@@ -253,7 +289,8 @@ async function bootstrap() {
       loginPhysio,
       loginPatientEmail,
       updateEmail,
-      updatePassword
+      updatePassword,
+      loginAdmin
     );
 
     const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
@@ -277,14 +314,62 @@ async function bootstrap() {
 
     // 🪄 NUEVO: Instanciamos el controlador del dashboard
     const dashboardController = new DashboardController(getDashboardStats);
+    const adminController = new AdminController(getAdminOverview);
 
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
     // ============================================================
     const app: Application = express();
 
-    app.use(cors()); // Habilitar peticiones desde Angular y App Móvil
-    app.use(express.json()); // Habilitar lectura de JSON en el Body
+    if (process.env.TRUST_PROXY === "1") {
+      app.set("trust proxy", 1);
+    }
+
+    const corsOrigins = process.env.CORS_ORIGINS?.trim();
+    if (corsOrigins) {
+      app.use(
+        cors({
+          origin: corsOrigins.split(",").map((o) => o.trim()).filter(Boolean),
+          credentials: true,
+        })
+      );
+    } else {
+      app.use(cors());
+    }
+    app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+      })
+    );
+    app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "512kb" }));
+
+    app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+    const trustProxy = process.env.TRUST_PROXY === "1";
+    const limiterValidate = { trustProxy } as const;
+
+    const loginLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: Number(process.env.LOGIN_MAX_ATTEMPTS_PER_WINDOW || 30),
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { success: false, message: "Demasiados intentos de acceso. Intenta más tarde." },
+      validate: limiterValidate,
+    });
+
+    const loginAdminLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: Number(process.env.LOGIN_ADMIN_MAX_ATTEMPTS_PER_WINDOW || 12),
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { success: false, message: "Demasiados intentos. Espera unos minutos." },
+      validate: limiterValidate,
+    });
+
+    // Rutas más específicas primero ("/login" es prefijo de "/login-admin")
+    app.use("/api/auth/login-admin", loginAdminLimiter);
+    app.use("/api/auth/login-patient", loginLimiter);
+    app.use("/api/auth/login", loginLimiter);
 
     // ============================================================
     // FASE 6: REGISTRO DE RUTAS
@@ -299,7 +384,8 @@ async function bootstrap() {
       appointmentController,
       logbookController,
       notificationController,
-      dashboardController // 🪄 AÑADIDO AQUI
+      dashboardController,
+      adminController,
     }));
 
     // ============================================================

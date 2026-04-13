@@ -28,13 +28,28 @@ export const PatientSchema = z.object({
 
 
 
-// 3. Reglas para el Ejercicio
-export const ExerciseSchema = z.object({
-  name: z.string().min(3, "El nombre del ejercicio es obligatorio"),
-  bodyZone: z.string().min(2, "La zona del cuerpo es obligatoria"),
-  description: z.string().min(10, "La descripción debe ser más detallada"),
-  videoUrl: z.string().url("Debe ser un enlace (URL) válido")
-});
+// 3. Ejercicio: multimedia solo como archivo subido (/uploads/exercises/...); sin URLs http(s)
+// Nota: en Zod 4, encadenar .object().transform().superRefine() puede fallar de forma opaca
+// ("expected object, received undefined" en path []). Validamos videoUrl solo con superRefine.
+export const ExerciseSchema = z
+  .object({
+    name: z.string().min(3, "El nombre del ejercicio es obligatorio"),
+    bodyZone: z.string().min(2, "La zona del cuerpo es obligatoria"),
+    description: z.string().min(10, "La descripción debe ser más detallada"),
+    videoUrl: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const t = data.videoUrl?.trim();
+    if (!t) return;
+    if (!/^\/uploads\/exercises\/.+/.test(t)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "No se permiten enlaces externos. La multimedia debe ser un archivo subido (ruta /uploads/exercises/...).",
+        path: ["videoUrl"],
+      });
+    }
+  });
 
 // 4. Reglas para el Seguimiento (Guardar Molestias)
 export const TrackingSchema = z.object({
@@ -44,7 +59,9 @@ export const TrackingSchema = z.object({
   postObservations: z.string().optional(),
   intraObservations: z.string().optional(),
   alert: z.number().int().min(0).max(1).optional(),
-  routineId: z.number().int().positive("El ID de la rutina es obligatorio")
+  routineId: z.number().int().positive("El ID de la rutina es obligatorio"),
+  patientId: z.number().int().positive("El ID del paciente es obligatorio"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido (YYYY-MM-DD)")
 });
 
 // 5. Reglas para la Rutina

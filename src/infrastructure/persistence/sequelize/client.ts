@@ -112,12 +112,13 @@ export const LogbookModel = sequelize.define("Logbook", {
 }, { tableName: "logbook" });
 
 // --- EXERCISE ---
+// video_url: ruta servida bajo /uploads/exercises/... (TEXT; null si aún no hay archivo)
 export const ExerciseModel = sequelize.define("Exercise", {
   id_exercise: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING, allowNull: false },
   body_zone: { type: DataTypes.STRING },
   description: { type: DataTypes.TEXT },
-  video_url: { type: DataTypes.TEXT }
+  video_url: { type: DataTypes.TEXT, allowNull: true },
 }, { tableName: "exercise" });
 
 // --- ROUTINE ---
@@ -171,7 +172,7 @@ export const TrackingModel = sequelize.define("Tracking", {
   interrupted: { type: DataTypes.TINYINT, defaultValue: 0 },
   notes: { type: DataTypes.TEXT },
   id_routine: { type: DataTypes.INTEGER, allowNull: false },
-  id_exercise: { type: DataTypes.INTEGER, allowNull: false },
+  id_exercise: { type: DataTypes.INTEGER, allowNull: true },
   id_patient: { type: DataTypes.INTEGER, allowNull: false }
 }, { tableName: "tracking" });
 
@@ -258,10 +259,10 @@ ExerciseModel.belongsToMany(RoutineTemplateModel, {
 
 // Tracking
 RoutineModel.hasMany(TrackingModel, { foreignKey: "id_routine", as: "tracking" });
-ExerciseModel.hasMany(TrackingModel, { foreignKey: "id_exercise", as: "tracking" });
+ExerciseModel.hasMany(TrackingModel, { foreignKey: "id_exercise", as: "tracking", constraints: false });
 PatientModel.hasMany(TrackingModel, { foreignKey: "id_patient", as: "tracking" });
 TrackingModel.belongsTo(RoutineModel, { foreignKey: "id_routine" });
-TrackingModel.belongsTo(ExerciseModel, { foreignKey: "id_exercise" });
+TrackingModel.belongsTo(ExerciseModel, { foreignKey: "id_exercise", constraints: false });
 TrackingModel.belongsTo(PatientModel, { foreignKey: "id_patient" });
 
 // Notifications

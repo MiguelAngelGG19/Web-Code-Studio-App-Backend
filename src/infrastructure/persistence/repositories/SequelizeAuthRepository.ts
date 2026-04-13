@@ -1,14 +1,19 @@
+import { QueryTypes } from "sequelize";
 import { IAuthRepository } from "../../../application/ports/IAuthRepository";
-// IMPORTANTE: Añadí 'sequelize' a la importación. Si tu conexión no se exporta desde 'client',
-// asegúrate de importarla desde tu archivo de configuración de base de datos (ej. database.ts)
 import { PhysiotherapistModel, UserModel, sequelize } from "../sequelize/client";
 import bcrypt from "bcrypt";
 
 export class SequelizeAuthRepository implements IAuthRepository {
 
   async findByEmail(email: string): Promise<any | null> {
-    // El email está en UserModel, no en PhysiotherapistModel
-    const user = await UserModel.findOne({ where: { email } });
+    const normalized = email.trim().toLowerCase();
+    const rows = await sequelize.query<{ id_user: number }>(
+      `SELECT id_user FROM users WHERE LOWER(TRIM(email)) = :normalized LIMIT 1`,
+      { replacements: { normalized }, type: QueryTypes.SELECT }
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const user = await UserModel.findByPk(row.id_user);
     return user ? user.get({ plain: true }) : null;
   }
 
@@ -28,10 +33,10 @@ export class SequelizeAuthRepository implements IAuthRepository {
 
     try {
       // 2. Crear usuario base (VINCULADO A LA TRANSACCIÓN)
-      //const hashedPassword = await bcrypt.hash(data.password, 10);
+      const hashedPassword = await bcrypt.hash(data.password, 10);
       const user = await UserModel.create({
         email:    data.email,
-        password: data.password, // <-- Guardamos la contraseña sin encriptar para que bcrypt pueda compararla después
+        password: hashedPassword, 
         role:     "physio",
       }, { transaction: t }); // <-- Le pasamos la transacción aquí
 

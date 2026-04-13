@@ -1,5 +1,5 @@
 import { PhysiotherapistRepository } from "../../../application/ports/out/PhysiotherapistRepository";
-import { PhysiotherapistModel } from "../sequelize/client";
+import { PhysiotherapistModel, UserModel } from "../sequelize/client";
 
 export class SequelizePhysiotherapistRepository implements PhysiotherapistRepository {
 
@@ -23,7 +23,17 @@ export class SequelizePhysiotherapistRepository implements PhysiotherapistReposi
   }
 
   async findByStatus(status: string): Promise<any[]> {
-    const fisios = await PhysiotherapistModel.findAll({ where: { status } });
-    return fisios.map(f => f.get({ plain: true }));
+    const fisios = await PhysiotherapistModel.findAll({
+      where: { status },
+      include: [{ model: UserModel, attributes: ["email"] }],
+      order: [["created_at", "DESC"]],
+    });
+    return fisios.map((f) => {
+      const j = f.get({ plain: true }) as any;
+      return {
+        ...j,
+        email: j.User?.email ?? j.email,
+      };
+    });
   }
 }

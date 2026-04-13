@@ -1,7 +1,8 @@
+import { QueryTypes } from "sequelize";
 import { PatientRepository } from "../../../application/ports/out/PatientRepository";
 import { CreatePatientDTO, UpdatePatientDTO } from "../../../application/dtos/patient.dto";
 import { Patient } from "../../../domain/entities/Patient";
-import { PatientModel, UserModel } from "../sequelize/client";
+import { PatientModel, UserModel, sequelize } from "../sequelize/client";
 
 export class SequelizePatientRepository implements PatientRepository {
 
@@ -79,9 +80,18 @@ export class SequelizePatientRepository implements PatientRepository {
   }
 
   async findByEmail(email: string): Promise<any | null> {
-    const user = await UserModel.findOne({ where: { email } });
-    if (!user) return null;
-    const patient = await PatientModel.findOne({ where: { id_user: (user as any).id_user } });
+    const normalized = email.trim().toLowerCase();
+    const userRows = await sequelize.query<{ id_user: number }>(
+      `SELECT id_user FROM users WHERE LOWER(TRIM(email)) = :normalized LIMIT 1`,
+      { replacements: { normalized }, type: QueryTypes.SELECT }
+    );
+    const row = userRows[0];
+    if (!row) return null;
+
+    const patient = await PatientModel.findOne({
+      where: { id_user: row.id_user },
+      include: [{ model: UserModel, attributes: ["email"] }],
+    });
     return patient ? patient.get({ plain: true }) : null;
   }
 }

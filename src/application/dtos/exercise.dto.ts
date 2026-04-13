@@ -2,5 +2,6 @@ export type CreateExerciseDTO = {
   name: string;
   bodyZone: string;
   description: string;
-  videoUrl: string;
+  /** Ruta bajo /uploads/exercises/... o ausente (NULL en BD) */
+  videoUrl?: string | null;
 };

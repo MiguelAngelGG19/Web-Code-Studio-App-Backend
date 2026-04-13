@@ -9,7 +9,7 @@ export const validate = (schema: ZodSchema) => {
       res.status(400).json({
         success: false,
         message: "Datos inválidos.",
-        errors: result.error.errors,
+        errors: result.error.issues,
       });
       return;
     }

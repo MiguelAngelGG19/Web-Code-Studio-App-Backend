@@ -14,6 +14,12 @@ export const requireApproval = (req: AuthRequest, res: Response, next: NextFunct
     return;
   }
 
+  // ✅ Administradores gestionan catálogo (ejercicios, etc.) sin perfil de fisio
+  if (req.user.role === 'admin') {
+    next();
+    return;
+  }
+
   // 🛡️ EL CANDADO DE TITANIO: Si el fisio no está aprobado, lo rebotamos
   if (req.user.status !== 'approved') {
     res.status(403).json({ 

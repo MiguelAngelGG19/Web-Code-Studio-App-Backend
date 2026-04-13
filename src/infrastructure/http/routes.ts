@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware"; // se añadio para los pdf
+import { optionalExerciseMediaUpload } from "./middlewares/upload-exercise.middleware";
 import { requireApproval } from "./middlewares/approved.middleware";
+import { requireAdmin } from "./middlewares/admin.middleware";
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
 
 export function buildRoutes(controllers: {
@@ -15,6 +17,7 @@ export function buildRoutes(controllers: {
   logbookController:       any;
   notificationController:  any;
   dashboardController:     any;
+  adminController:         any;
 }) {
   const router = Router();
 
@@ -24,17 +27,19 @@ export function buildRoutes(controllers: {
   router.post("/auth/register", controllers.authController.register);
   router.post("/auth/login",    controllers.authController.login);
   router.post("/auth/login-patient", controllers.authController.loginPatient);
-
+  router.post("/auth/login-admin", controllers.authController.loginAdmin);
 
   // ============================================================
   // RUTAS PROTEGIDAS (requieren JWT)
   // ============================================================
 
-  // Fisioterapeutas
-  router.get("/physiotherapists/pending",       authMiddleware, controllers.physioController.listPending);
-  router.post("/physiotherapists",              authMiddleware, controllers.physioController.create);
-  router.get("/physiotherapists/:id",           authMiddleware, controllers.physioController.getById);
-  router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
+  // Fisioterapeutas — aprobación solo administradores
+  router.get("/physiotherapists/pending", authMiddleware, requireAdmin, controllers.physioController.listPending);
+  router.patch("/physiotherapists/:id/approve", authMiddleware, requireAdmin, controllers.physioController.approve);
+  router.get("/admin/overview", authMiddleware, requireAdmin, controllers.adminController.getOverview);
+
+  router.post("/physiotherapists", authMiddleware, controllers.physioController.create);
+  router.get("/physiotherapists/:id", authMiddleware, controllers.physioController.getById);
   router.patch("/auth/update-email", authMiddleware, controllers.authController.updateEmail);
   router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
   
@@ -99,8 +104,14 @@ export function buildRoutes(controllers: {
   router.put("/patients/:id",  authMiddleware, requireApproval, controllers.patientController.update);
   router.get("/patients/:id",  authMiddleware, requireApproval, controllers.patientController.getById);
 
-  // Ejercicios
-  router.post("/exercises",     authMiddleware, requireApproval, controllers.exerciseController.create);
+  // Ejercicios: JSON (sin URL de video) o multipart con campo "media" para archivo en /uploads/exercises/
+  router.post(
+    "/exercises",
+    authMiddleware,
+    requireApproval,
+    optionalExerciseMediaUpload,
+    controllers.exerciseController.create
+  );
   router.get("/exercises",      authMiddleware, requireApproval, controllers.exerciseController.list);
   router.get("/exercises/:id",  authMiddleware, requireApproval, controllers.exerciseController.getById);
 

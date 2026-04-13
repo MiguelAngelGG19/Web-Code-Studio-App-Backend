@@ -4,6 +4,6 @@ export class ListPendingPhysiotherapistsUseCase {
   constructor(private readonly physioRepo: PhysiotherapistRepository) {}
 
   async execute(): Promise<any[]> {
-    return await this.physioRepo.findByStatus("pendiente");
+    return await this.physioRepo.findByStatus("pending_approval");
   }
 }

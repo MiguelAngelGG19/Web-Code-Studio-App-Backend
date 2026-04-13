@@ -4,14 +4,16 @@ import { LoginPhysiotherapistUseCase } from "../../../application/use-cases/Logi
 import { LoginPatientByEmailUseCase } from "../../../application/use-cases/LoginPatientByEmail.uc"; 
 import { UpdateEmailUseCase } from "../../../application/use-cases/UpdateEmail.uc";
 import { UpdatePasswordUseCase } from "../../../application/use-cases/UpdatePassword.uc";
+import { LoginAdminUseCase } from "../../../application/use-cases/LoginAdmin.uc";
 
 export class AuthController {
   constructor(
     private readonly registerUseCase: RegisterPhysiotherapistUseCase,
     private readonly loginUseCase: LoginPhysiotherapistUseCase,
-    private readonly loginPatientEmailUseCase: LoginPatientByEmailUseCase, 
-    private updateEmailUseCase: UpdateEmailUseCase,    
-    private updatePasswordUseCase: UpdatePasswordUseCase
+    private readonly loginPatientEmailUseCase: LoginPatientByEmailUseCase,
+    private updateEmailUseCase: UpdateEmailUseCase,
+    private updatePasswordUseCase: UpdatePasswordUseCase,
+    private readonly loginAdminUseCase: LoginAdminUseCase
   ) {}
 
   register = async (req: Request, res: Response): Promise<void> => {
@@ -44,6 +46,26 @@ export class AuthController {
       res.status(200).json(result);
     } catch (error: any) {
       res.status(401).json({ message: error.message });
+    }
+  };
+
+  loginAdmin = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        res.status(400).json({ message: "Correo y contraseña son obligatorios." });
+        return;
+      }
+      const result = await this.loginAdminUseCase.execute(email, password);
+      res.status(200).json(result);
+    } catch (error: any) {
+      if (error?.name === "SequelizeDatabaseError") {
+        res.status(503).json({
+          message: "Error de base de datos al iniciar sesión. Reinicia el API (crea tablas faltantes) o revisa MySQL.",
+        });
+        return;
+      }
+      res.status(401).json({ message: error.message || "Credenciales incorrectas." });
     }
   };
 

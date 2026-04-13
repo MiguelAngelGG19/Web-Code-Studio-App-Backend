@@ -7,7 +7,23 @@
  */
 
 import { Request, Response } from "express";
+import { ZodError } from "zod";
 import { ExerciseSchema } from "../../../application/dtos/schemas";
+
+/** Multer a veces entrega campos como string, array de strings o Buffer (según cliente/servidor). */
+function multipartText(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") return value;
+  if (Buffer.isBuffer(value)) return value.toString("utf8");
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const s = multipartText(item);
+      if (s !== undefined) return s;
+    }
+    return undefined;
+  }
+  return undefined;
+}
 
 /**
  * Clase controladora para la entidad Ejercicio.
@@ -37,8 +53,51 @@ export class ExerciseController {
    */
   create = async (req: Request, res: Response): Promise<void> => {
     try {
-      // Validación estricta con Zod (Esquema definido en DTOs)
-      const validatedData = ExerciseSchema.parse(req.body);
+      const ct = String(req.headers["content-type"] || "");
+      const isMultipart = ct.includes("multipart/form-data");
+
+      const file = (req as Request & { file?: { filename: string } }).file;
+      let videoUrl: string | undefined;
+      if (file?.filename) {
+        videoUrl = `/uploads/exercises/${file.filename}`;
+      }
+
+      if (isMultipart && !file?.filename) {
+        res.status(400).json({
+          success: false,
+          message:
+            "No se recibió el archivo en el campo «media». Comprueba el nombre del archivo (no vacío), el campo del formulario y que el tipo sea video o imagen permitidos.",
+          details: {
+            contentType: ct,
+            bodyKeys: Object.keys(req.body || {}),
+          },
+        });
+        return;
+      }
+
+      const nameRaw = multipartText(req.body?.name);
+      const bodyZoneRaw = multipartText(req.body?.bodyZone);
+      const descriptionRaw = multipartText(req.body?.description);
+
+      const payload = {
+        name: nameRaw?.trim(),
+        bodyZone: bodyZoneRaw?.trim(),
+        description: descriptionRaw?.trim(),
+        videoUrl,
+      };
+      const parsed = ExerciseSchema.safeParse(payload);
+      if (!parsed.success) {
+        res.status(400).json({
+          success: false,
+          message: "Datos del ejercicio inválidos.",
+          errors: parsed.error.issues,
+        });
+        return;
+      }
+      const validatedData = {
+        ...parsed.data,
+        videoUrl: parsed.data.videoUrl?.trim() ? parsed.data.videoUrl.trim() : undefined,
+      };
       const exercise = await this.createExercise.execute(validatedData);
       
       res.status(201).json({ 
@@ -47,12 +106,13 @@ export class ExerciseController {
         data: exercise 
       });
     } catch (error: any) {
-      // Captura de errores de validación de formato
-      if (error.name === 'ZodError') {
-        res.status(400).json({ 
-          success: false, 
-          message: "Datos del ejercicio inválidos.", 
-          errors: error.errors 
+      // Captura de errores de validación de formato (instanceof puede fallar con duplicado de zod)
+      if (error instanceof ZodError || error?.name === "ZodError") {
+        const issues = error instanceof ZodError ? error.issues : error?.issues ?? [];
+        res.status(400).json({
+          success: false,
+          message: "Datos del ejercicio inválidos.",
+          errors: issues,
         });
         return;
       }
