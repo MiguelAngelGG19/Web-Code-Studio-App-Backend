@@ -16,11 +16,10 @@ export class SubscriptionController {
   constructor(private createCheckoutSession: CreateCheckoutSessionUseCase) {}
 
   // POST /api/suscripciones/checkout
-  // Protegida con authMiddleware + requireApproval en routes.ts
   checkout = async (req: Request, res: Response) => {
     try {
       const { planId } = req.body;
-      const physioId = (req as any).user.id; // Viene del authMiddleware (JWT)
+      const physioId = (req as any).user.id;
 
       if (!planId) {
         return res.status(400).json({ message: 'El campo planId es requerido.' });
@@ -35,7 +34,6 @@ export class SubscriptionController {
 
   // POST /api/suscripciones/webhook
   // ⚠️ SIN authMiddleware — Stripe llama directamente a este endpoint.
-  // Necesita express.raw() en routes.ts para validar la firma.
   webhook = async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'];
 
@@ -52,27 +50,27 @@ export class SubscriptionController {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
 
-      // Evento: nueva suscripción creada o renovada
+      // Suscripción creada o actualizada
       if (
         event.type === 'customer.subscription.created' ||
         event.type === 'customer.subscription.updated'
       ) {
-        const subscription = event.data.object as Stripe.Subscription;
-        const physioId = subscription.metadata?.physioId;
+        const subActiva = event.data.object as Stripe.Subscription;
+        const physioId  = subActiva.metadata?.physioId;
 
         if (physioId) {
           await PhysiotherapistModel.update(
-            { plan_activo: subscription.status === 'active' ? 'activo' : 'inactivo' },
+            { plan_activo: subActiva.status === 'active' ? 'activo' : 'inactivo' },
             { where: { id_user: physioId } }
           );
           console.log(`✅ Plan actualizado para fisioterapeuta ID: ${physioId}`);
         }
       }
 
-      // Evento: suscripción cancelada o vencida
+      // Suscripción cancelada o vencida
       if (event.type === 'customer.subscription.deleted') {
-        const subscription = event.data.object as Stripe.Subscription;
-        const physioId = subscription.metadata?.physioId;
+        const subCancelada = event.data.object as Stripe.Subscription;
+        const physioId     = subCancelada.metadata?.physioId;
 
         if (physioId) {
           await PhysiotherapistModel.update(
