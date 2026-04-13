@@ -20,6 +20,7 @@ import { LoginPatientWithGoogleUseCase } from "./application/use-cases/LoginPati
 import { ApprovePhysiotherapistUseCase } from "./application/use-cases/ApprovePhysiotherapist.uc";
 import { ListPendingPhysiotherapistsUseCase } from "./application/use-cases/ListPendingPhysiotherapists.uc";
 import { LoginPatientByEmailUseCase } from "./application/use-cases/LoginPatientByEmail.uc";
+import { LoginAdminUseCase } from "./application/use-cases/LoginAdmin.uc";
 
 // Repositorios nuevos
 import { SequelizeAppointmentRepository } from "./infrastructure/persistence/repositories/SequelizeAppointmentRepository";
@@ -97,6 +98,9 @@ import { GetRoutineTemplateByIdUseCase } from "./application/use-cases/GetRoutin
 // 🪄 NUEVO: Caso de uso del Dashboard
 import { GetDashboardStatsUseCase } from "./application/use-cases/GetDashboardStats.uc";
 
+// Admin
+import { GetAdminOverviewUseCase } from "./application/use-cases/GetAdminOverview.uc";
+
 // 💳 NUEVO: Caso de uso y controlador de Suscripciones (Stripe)
 import { CreateCheckoutSessionUseCase } from "./application/use-cases/CreateCheckoutSession.uc";
 import { SubscriptionController } from "./infrastructure/http/controllers/subscription.controller";
@@ -116,6 +120,7 @@ import { NotificationController } from "./infrastructure/http/controllers/notifi
 // 🪄 NUEVO: Controlador del Dashboard
 import { DashboardController } from "./infrastructure/http/controllers/dashboard.controller";
 import { DocumentController } from "./infrastructure/http/controllers/document.controller";
+import { AdminController } from "./infrastructure/http/controllers/admin.controller";
 
 // Cargar variables de entorno (.env)
 dotenv.config();
@@ -154,7 +159,6 @@ async function bootstrap() {
 
     // ============================================================
     // FASE 3: INSTANCIACIÓN DE CASOS DE USO (APLICACIÓN)
-    // Se inyectan los repositorios necesarios a cada caso de uso.
     // ============================================================
 
     // Casos de Uso: Pacientes
@@ -192,6 +196,7 @@ async function bootstrap() {
     const loginPatientEmail = new LoginPatientByEmailUseCase(patientRepo);
     const updateEmail = new UpdateEmailUseCase(authRepo);
     const updatePassword = new UpdatePasswordUseCase(authRepo);
+    const loginAdmin = new LoginAdminUseCase();
 
     // Citas
     const createAppointment = new CreateAppointmentUseCase(appointmentRepo);
@@ -207,18 +212,20 @@ async function bootstrap() {
     const getNotificationsByPatient = new GetNotificationsByPatientUseCase(notificationRepo);
     const markNotificationAsRead = new MarkNotificationAsReadUseCase(notificationRepo);
 
-    // Seguimiento (después de notificaciones: alertas por dolor alto)
+    // Seguimiento
     const registerPain = new RegisterPainLevelUseCase(trackingRepo, routineRepo, createNotification);
 
     // 🪄 NUEVO: Instanciamos el caso de uso del dashboard
     const getDashboardStats = new GetDashboardStatsUseCase(dashboardRepo);
+
+    // Admin
+    const getAdminOverview = new GetAdminOverviewUseCase();
 
     // 💳 NUEVO: Instanciamos el caso de uso de Suscripciones (Stripe)
     const createCheckoutSession = new CreateCheckoutSessionUseCase();
 
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
-    // Se agrupan los casos de uso por dominio en sus controladores.
     // ============================================================
     const patientController = new PatientController(
       createPatient,
@@ -264,7 +271,8 @@ async function bootstrap() {
       loginPhysio,
       loginPatientEmail,
       updateEmail,
-      updatePassword
+      updatePassword,
+      loginAdmin
     );
 
     const getAppointmentsByPhysioUseCase = new GetAppointmentsByPhysioUseCase(appointmentRepo);
@@ -289,6 +297,7 @@ async function bootstrap() {
     // 🪄 NUEVO: Instanciamos el controlador del dashboard
     const dashboardController = new DashboardController(getDashboardStats);
     const documentController = new DocumentController();
+    const adminController = new AdminController(getAdminOverview);
 
     // 💳 NUEVO: Instanciamos el controlador de Suscripciones
     const subscriptionController = new SubscriptionController(createCheckoutSession);
@@ -298,8 +307,8 @@ async function bootstrap() {
     // ============================================================
     const app: Application = express();
 
-    app.use(cors()); // Habilitar peticiones desde Angular y App Móvil
-    app.use(express.json()); // Habilitar lectura de JSON en el Body
+    app.use(cors());
+    app.use(express.json());
     app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
     // ============================================================
@@ -317,7 +326,8 @@ async function bootstrap() {
       notificationController,
       dashboardController,
       documentController,
-      subscriptionController // 💳 AÑADIDO AQUÍ
+      subscriptionController,
+      adminController,
     }));
 
     // ============================================================

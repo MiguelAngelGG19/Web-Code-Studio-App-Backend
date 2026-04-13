@@ -3,7 +3,8 @@ import express from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware";
 import { requireApproval } from "./middlewares/approved.middleware";
-import { requireActivePlan } from "./middlewares/active-plan.middleware"; // 🔒 NUEVO
+import { requireActivePlan } from "./middlewares/active-plan.middleware";
+import { requireAdmin } from "./middlewares/admin.middleware";
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
 import { uploadPatientMedicalPdf } from "./middlewares/upload-patient-medical.middleware";
 
@@ -20,6 +21,7 @@ export function buildRoutes(controllers: {
   dashboardController:     any;
   documentController:      any;
   subscriptionController:  any;
+  adminController:         any;
 }) {
   const router = Router();
 
@@ -29,18 +31,21 @@ export function buildRoutes(controllers: {
   router.post("/auth/register",      controllers.authController.register);
   router.post("/auth/login",         controllers.authController.login);
   router.post("/auth/login-patient", controllers.authController.loginPatient);
+  router.post("/auth/login-admin",   controllers.authController.loginAdmin);
 
   // ============================================================
-  // RUTAS PROTEGIDAS — Solo JWT (aprobación / perfil / plan)
+  // RUTAS PROTEGIDAS — Solo JWT
   // ============================================================
 
-  // Fisioterapeutas
-  router.get("/physiotherapists/pending",       authMiddleware, controllers.physioController.listPending);
-  router.post("/physiotherapists",              authMiddleware, controllers.physioController.create);
-  router.get("/physiotherapists/:id",           authMiddleware, controllers.physioController.getById);
-  router.patch("/physiotherapists/:id/approve", authMiddleware, controllers.physioController.approve);
-  router.patch("/auth/update-email",            authMiddleware, controllers.authController.updateEmail);
-  router.patch("/auth/update-password",         authMiddleware, controllers.authController.updatePassword);
+  // Fisioterapeutas — solo administradores
+  router.get("/physiotherapists/pending",       authMiddleware, requireAdmin, controllers.physioController.listPending);
+  router.patch("/physiotherapists/:id/approve", authMiddleware, requireAdmin, controllers.physioController.approve);
+  router.get("/admin/overview",                 authMiddleware, requireAdmin, controllers.adminController.getOverview);
+
+  router.post("/physiotherapists",  authMiddleware, controllers.physioController.create);
+  router.get("/physiotherapists/:id", authMiddleware, controllers.physioController.getById);
+  router.patch("/auth/update-email",    authMiddleware, controllers.authController.updateEmail);
+  router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
 
   // Subida de documentos (fisio aún no aprobado, no necesita plan)
   router.post(
@@ -96,7 +101,6 @@ export function buildRoutes(controllers: {
   // ============================================================
   // RUTAS OPERATIVAS
   // Cadena: authMiddleware → requireApproval → requireActivePlan → controller
-  // 🔒 requireActivePlan bloquea a fisios sin suscripción activa
   // ============================================================
 
   // Dashboard
