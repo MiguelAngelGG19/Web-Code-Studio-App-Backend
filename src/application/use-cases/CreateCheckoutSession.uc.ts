@@ -1,40 +1,34 @@
-import Stripe from 'stripe';
-
 /**
  * **************************************************************************
- * CASO DE USO: CreateCheckoutSession
- * DESCRIPCIÓN: Crea una sesión de pago segura en Stripe para suscripciones.
- *              El usuario es redirigido a la página de Stripe (nunca pagamos
- *              desde el frontend propio).
+ * CASO DE USO: Crear Sesión de Checkout en Stripe
  * **************************************************************************
  */
 
-// Tipos válidos de plan — esto evita el error rojo de TypeScript
-type PlanId = 'basico' | 'ilimitado';
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-03-31.basil",
+});
 
 export class CreateCheckoutSessionUseCase {
-  async execute(planId: string, physioId: string): Promise<string> {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-    const prices: Record<PlanId, string> = {
-      basico:    process.env.STRIPE_PRICE_BASICO!,
-      ilimitado: process.env.STRIPE_PRICE_ILIMITADO!
-    };
-
-    // Validar que el planId recibido sea uno de los planes válidos
-    if (!Object.keys(prices).includes(planId)) {
-      throw new Error(`Plan no válido: "${planId}". Use "basico" o "ilimitado".`);
-    }
-
+  async execute(physioId: number, email: string): Promise<string> {
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [{ price: prices[planId as PlanId], quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL}/dashboard/planes?status=success`,
-      cancel_url:  `${process.env.FRONTEND_URL}/dashboard/planes?status=cancel`,
-      metadata: { physioId }
+      mode: "subscription",
+      payment_method_types: ["card"],
+      customer_email: email,
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID as string,
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        physioId: String(physioId),
+      },
+      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
     });
 
-    return session.url!;
+    return session.url as string;
   }
 }

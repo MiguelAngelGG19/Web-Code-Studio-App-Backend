@@ -1,80 +1,120 @@
-import { Request, Response } from 'express';
-import Stripe from 'stripe';
-import { CreateCheckoutSessionUseCase } from '../../../application/use-cases/CreateCheckoutSession.uc';
-import { PhysiotherapistModel } from '../../persistence/sequelize/client';
+/**
+ * **************************************************************************
+ * CONTROLADOR: Suscripciones (Stripe)
+ * **************************************************************************
+ */
+
+import { Request, Response } from "express";
+import Stripe from "stripe";
+import { CreateCheckoutSessionUseCase } from "../../../application/use-cases/CreateCheckoutSession.uc";
+import { PhysiotherapistModel } from "../../persistence/sequelize/client";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-03-31.basil",
+});
 
 export class SubscriptionController {
-  constructor(private createCheckoutSession: CreateCheckoutSessionUseCase) {}
+  constructor(
+    private readonly createCheckoutSession: CreateCheckoutSessionUseCase
+  ) {}
 
   // POST /api/suscripciones/checkout
-  checkout = async (req: Request, res: Response) => {
+  checkout = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { planId } = req.body;
-      const physioId = (req as any).user.id;
+      const user = (req as any).user;
+      const physio: any = await PhysiotherapistModel.findOne({
+        where: { id_user: user.id },
+      });
 
-      if (!planId) {
-        return res.status(400).json({ message: 'El campo planId es requerido.' });
+      if (!physio) {
+        res.status(404).json({ message: "Fisioterapeuta no encontrado." });
+        return;
       }
 
-      const url = await this.createCheckoutSession.execute(planId, physioId);
+      const url = await this.createCheckoutSession.execute(
+        user.id,
+        user.email
+      );
+
       res.status(200).json({ url });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   };
 
   // POST /api/suscripciones/webhook
-  webhook = async (req: Request, res: Response) => {
-    const sig = req.headers['stripe-signature'];
-
-    if (!sig) {
-      return res.status(400).json({ message: 'Falta la firma de Stripe.' });
-    }
-
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  // Recibe eventos de Stripe (pago exitoso, cancelación, etc.)
+  webhook = async (req: Request, res: Response): Promise<void> => {
+    const sig = req.headers["stripe-signature"] as string;
+    let event: Stripe.Event;
 
     try {
-      const event = stripe.webhooks.constructEvent(
+      event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET as string
       );
-
-      // Suscripción creada o actualizada
-      if (
-        event.type === 'customer.subscription.created' ||
-        event.type === 'customer.subscription.updated'
-      ) {
-        const subActiva = event.data.object as any;
-        const physioId  = subActiva.metadata?.physioId;
-
-        if (physioId) {
-          await PhysiotherapistModel.update(
-            { plan_activo: subActiva.status === 'active' ? 'activo' : 'inactivo' },
-            { where: { id_user: physioId } }
-          );
-          console.log(`✅ Plan actualizado para fisioterapeuta ID: ${physioId}`);
-        }
-      }
-
-      // Suscripción cancelada o vencida
-      if (event.type === 'customer.subscription.deleted') {
-        const subCancelada = event.data.object as any;
-        const physioId     = subCancelada.metadata?.physioId;
-
-        if (physioId) {
-          await PhysiotherapistModel.update(
-            { plan_activo: 'inactivo' },
-            { where: { id_user: physioId } }
-          );
-          console.log(`❌ Plan desactivado para fisioterapeuta ID: ${physioId}`);
-        }
-      }
-
-      res.json({ received: true });
     } catch (err: any) {
-      console.error('Webhook error:', err.message);
+      console.error("❌ Webhook signature inválida:", err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const physioId = session.metadata?.physioId;
+          const customerId = session.customer as string;
+          const subscriptionId = session.subscription as string;
+
+          if (physioId) {
+            await PhysiotherapistModel.update(
+              {
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                plan_status: "active",
+              },
+              { where: { id_user: Number(physioId) } }
+            );
+            console.log(`✅ Suscripción activada para fisio ID: ${physioId}`);
+          }
+          break;
+        }
+
+        case "customer.subscription.deleted":
+        case "customer.subscription.paused": {
+          const subscription = event.data.object as Stripe.Subscription;
+          const customerId = subscription.customer as string;
+
+          await PhysiotherapistModel.update(
+            { plan_status: "inactive" },
+            { where: { stripe_customer_id: customerId } }
+          );
+          console.log(`⚠️ Suscripción cancelada/pausada para customer: ${customerId}`);
+          break;
+        }
+
+        case "invoice.payment_failed": {
+          const invoice = event.data.object as Stripe.Invoice;
+          const customerId = invoice.customer as string;
+
+          await PhysiotherapistModel.update(
+            { plan_status: "past_due" },
+            { where: { stripe_customer_id: customerId } }
+          );
+          console.log(`🔴 Pago fallido para customer: ${customerId}`);
+          break;
+        }
+
+        default:
+          console.log(`ℹ️ Evento no manejado: ${event.type}`);
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error("❌ Error procesando webhook:", error.message);
+      res.status(500).json({ message: error.message });
     }
   };
 }
