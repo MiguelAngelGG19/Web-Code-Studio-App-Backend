@@ -97,6 +97,10 @@ import { GetRoutineTemplateByIdUseCase } from "./application/use-cases/GetRoutin
 // 🪄 NUEVO: Caso de uso del Dashboard
 import { GetDashboardStatsUseCase } from "./application/use-cases/GetDashboardStats.uc";
 
+// 💳 NUEVO: Caso de uso y controlador de Suscripciones (Stripe)
+import { CreateCheckoutSessionUseCase } from "./application/use-cases/CreateCheckoutSession.uc";
+import { SubscriptionController } from "./infrastructure/http/controllers/subscription.controller";
+
 // 4. CONTROLADORES (HTTP INTERFACE)
 import { PatientController } from "./infrastructure/http/controllers/patient.controller";
 import { PhysiotherapistController } from "./infrastructure/http/controllers/physiotherapist.controller";
@@ -209,6 +213,9 @@ async function bootstrap() {
     // 🪄 NUEVO: Instanciamos el caso de uso del dashboard
     const getDashboardStats = new GetDashboardStatsUseCase(dashboardRepo);
 
+    // 💳 NUEVO: Instanciamos el caso de uso de Suscripciones (Stripe)
+    const createCheckoutSession = new CreateCheckoutSessionUseCase();
+
     // ============================================================
     // FASE 4: INSTANCIACIÓN DE CONTROLADORES (INTERFACE ADAPTERS)
     // Se agrupan los casos de uso por dominio en sus controladores.
@@ -283,6 +290,9 @@ async function bootstrap() {
     const dashboardController = new DashboardController(getDashboardStats);
     const documentController = new DocumentController();
 
+    // 💳 NUEVO: Instanciamos el controlador de Suscripciones
+    const subscriptionController = new SubscriptionController(createCheckoutSession);
+
     // ============================================================
     // FASE 5: CONFIGURACIÓN DEL SERVIDOR EXPRESS
     // ============================================================
@@ -305,8 +315,9 @@ async function bootstrap() {
       appointmentController,
       logbookController,
       notificationController,
-      dashboardController, // 🪄 AÑADIDO AQUI
-      documentController
+      dashboardController,
+      documentController,
+      subscriptionController // 💳 AÑADIDO AQUÍ
     }));
 
     // ============================================================
