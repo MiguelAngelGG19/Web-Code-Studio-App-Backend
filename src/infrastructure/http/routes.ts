@@ -33,6 +33,9 @@ export function buildRoutes(controllers: {
   router.post("/auth/login-patient", controllers.authController.loginPatient);
   router.post("/auth/login-admin",   controllers.authController.loginAdmin);
 
+  // Planes públicos (sin autenticación — usado por frontend para mostrar precios)
+  router.get("/publico/planes", controllers.subscriptionController.getPublicPlans);
+
   // ============================================================
   // RUTAS PROTEGIDAS — Solo JWT
   // ============================================================
@@ -42,7 +45,7 @@ export function buildRoutes(controllers: {
   router.patch("/physiotherapists/:id/approve", authMiddleware, requireAdmin, controllers.physioController.approve);
   router.get("/admin/overview",                 authMiddleware, requireAdmin, controllers.adminController.getOverview);
 
-  router.post("/physiotherapists",  authMiddleware, controllers.physioController.create);
+  router.post("/physiotherapists",    authMiddleware, controllers.physioController.create);
   router.get("/physiotherapists/:id", authMiddleware, controllers.physioController.getById);
   router.patch("/auth/update-email",    authMiddleware, controllers.authController.updateEmail);
   router.patch("/auth/update-password", authMiddleware, controllers.authController.updatePassword);
@@ -95,8 +98,26 @@ export function buildRoutes(controllers: {
     controllers.subscriptionController.webhook
   );
 
-  // Checkout: requiere JWT pero NO requireActivePlan (el fisio aún no tiene plan)
-  router.post("/suscripciones/checkout", authMiddleware, controllers.subscriptionController.checkout);
+  // Checkout: requiere JWT pero NO requireActivePlan
+  router.post("/suscripciones/checkout",           authMiddleware, controllers.subscriptionController.checkout);
+
+  // Planes privados (con JWT)
+  router.get("/suscripciones/planes",              authMiddleware, controllers.subscriptionController.getPlans);
+
+  // Mi plan actual
+  router.get("/suscripciones/mi-plan",             authMiddleware, controllers.subscriptionController.getMiPlan);
+
+  // Confirmar checkout después de regresar de Stripe
+  router.get("/suscripciones/confirmar-checkout",  authMiddleware, controllers.subscriptionController.confirmarCheckout);
+
+  // Cambiar plan (upgrade/downgrade)
+  router.post("/suscripciones/cambiar-plan",       authMiddleware, controllers.subscriptionController.cambiarPlan);
+
+  // Cancelar cambio pendiente
+  router.delete("/suscripciones/cambio-pendiente", authMiddleware, controllers.subscriptionController.cancelarCambioPendiente);
+
+  // Portal de billing de Stripe
+  router.post("/suscripciones/portal",             authMiddleware, controllers.subscriptionController.abrirPortal);
 
   // ============================================================
   // RUTAS OPERATIVAS
@@ -146,9 +167,9 @@ export function buildRoutes(controllers: {
   router.get("/logbook/appointment/:appointmentId", authMiddleware, requireApproval, requireActivePlan, controllers.logbookController.getByAppointment);
 
   // Notificaciones
-  router.post("/notifications",                  authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.create);
-  router.get("/notifications/patient/:patientId",authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.getByPatient);
-  router.patch("/notifications/:id/read",        authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.markAsRead);
+  router.post("/notifications",                   authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.create);
+  router.get("/notifications/patient/:patientId", authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.getByPatient);
+  router.patch("/notifications/:id/read",         authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.markAsRead);
 
   // Documentos médicos
   router.get("/documents", authMiddleware, requireApproval, requireActivePlan, controllers.documentController.list);
