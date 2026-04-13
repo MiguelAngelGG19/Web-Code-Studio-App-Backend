@@ -3,7 +3,7 @@ import express from "express";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { uploadDocuments } from "./middlewares/upload.middleware";
 import { requireApproval } from "./middlewares/approved.middleware";
-import { requireActivePlan } from "./middlewares/active-plan.middleware"; // 🔒 NUEVO
+import { requireActivePlan } from "./middlewares/active-plan.middleware";
 import { PhysiotherapistModel } from "../persistence/sequelize/client";
 import { uploadPatientMedicalPdf } from "./middlewares/upload-patient-medical.middleware";
 
@@ -29,6 +29,9 @@ export function buildRoutes(controllers: {
   router.post("/auth/register",      controllers.authController.register);
   router.post("/auth/login",         controllers.authController.login);
   router.post("/auth/login-patient", controllers.authController.loginPatient);
+
+  // Planes públicos (sin autenticación — usado por frontend para mostrar precios)
+  router.get("/publico/planes", controllers.subscriptionController.getPublicPlans);
 
   // ============================================================
   // RUTAS PROTEGIDAS — Solo JWT (aprobación / perfil / plan)
@@ -81,9 +84,10 @@ export function buildRoutes(controllers: {
   );
 
   // ============================================================
-  // 💳 SUSCRIPCIONES (Stripe)
-  // El webhook va ANTES del express.json() global, necesita body RAW
+  // SUSCRIPCIONES (Stripe)
   // ============================================================
+
+  // Webhook: va ANTES del express.json() global, necesita body RAW
   router.post(
     "/suscripciones/webhook",
     express.raw({ type: 'application/json' }),
@@ -91,12 +95,29 @@ export function buildRoutes(controllers: {
   );
 
   // Checkout: requiere JWT pero NO requireActivePlan (el fisio aún no tiene plan)
-  router.post("/suscripciones/checkout", authMiddleware, controllers.subscriptionController.checkout);
+  router.post("/suscripciones/checkout",        authMiddleware, controllers.subscriptionController.checkout);
+
+  // Planes privados (con JWT)
+  router.get("/suscripciones/planes",           authMiddleware, controllers.subscriptionController.getPlans);
+
+  // Mi plan actual
+  router.get("/suscripciones/mi-plan",          authMiddleware, controllers.subscriptionController.getMiPlan);
+
+  // Confirmar checkout después de regresar de Stripe
+  router.get("/suscripciones/confirmar-checkout", authMiddleware, controllers.subscriptionController.confirmarCheckout);
+
+  // Cambiar plan (upgrade/downgrade)
+  router.post("/suscripciones/cambiar-plan",    authMiddleware, controllers.subscriptionController.cambiarPlan);
+
+  // Cancelar cambio pendiente
+  router.delete("/suscripciones/cambio-pendiente", authMiddleware, controllers.subscriptionController.cancelarCambioPendiente);
+
+  // Portal de billing de Stripe
+  router.post("/suscripciones/portal",          authMiddleware, controllers.subscriptionController.abrirPortal);
 
   // ============================================================
   // RUTAS OPERATIVAS
   // Cadena: authMiddleware → requireApproval → requireActivePlan → controller
-  // 🔒 requireActivePlan bloquea a fisios sin suscripción activa
   // ============================================================
 
   // Dashboard
@@ -142,9 +163,9 @@ export function buildRoutes(controllers: {
   router.get("/logbook/appointment/:appointmentId", authMiddleware, requireApproval, requireActivePlan, controllers.logbookController.getByAppointment);
 
   // Notificaciones
-  router.post("/notifications",                  authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.create);
-  router.get("/notifications/patient/:patientId",authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.getByPatient);
-  router.patch("/notifications/:id/read",        authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.markAsRead);
+  router.post("/notifications",                   authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.create);
+  router.get("/notifications/patient/:patientId", authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.getByPatient);
+  router.patch("/notifications/:id/read",         authMiddleware, requireApproval, requireActivePlan, controllers.notificationController.markAsRead);
 
   // Documentos médicos
   router.get("/documents", authMiddleware, requireApproval, requireActivePlan, controllers.documentController.list);
